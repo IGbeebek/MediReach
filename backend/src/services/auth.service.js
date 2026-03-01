@@ -1,5 +1,7 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+const appleSignin = require('apple-signin-auth');
 const config = require('../config');
 const userRepository = require('../repositories/user.repository');
 const tokenRepository = require('../repositories/token.repository');
@@ -12,7 +14,7 @@ const {
   verifyResetToken,
   parseDuration,
 } = require('../utils/jwt');
-const { sendPasswordResetEmail } = require('../utils/email');
+const { sendPasswordResetEmail, sendPasswordResetCode } = require('../utils/email');
 const {
   BadRequestError,
   UnauthorizedError,
@@ -22,6 +24,7 @@ const {
 } = require('../utils/errors');
 
 const SALT_ROUNDS = 12;
+const googleClient = new OAuth2Client(config.google.clientId);
 
 /**
  * Auth Service — all business logic for authentication & authorization.
@@ -190,7 +193,10 @@ const authService = {
     // Always respond with success to prevent email enumeration
     if (!user) return;
 
-    // Generate a short-lived reset JWT
+    // Generate a 6-digit OTP code
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+
+    // Also generate a reset JWT (kept for internal tracking)
     const resetJwt = generateResetToken({ userId: user.id });
 
     const expiresAt = new Date(
@@ -200,39 +206,185 @@ const authService = {
     await resetTokenRepository.create({
       userId: user.id,
       token: resetJwt,
+      code,
       expiresAt,
     });
 
-    const resetUrl = `${config.clientUrl}/reset-password?token=${resetJwt}`;
+    // Send OTP code via email
+    await sendPasswordResetCode(user.email, code);
+  },
 
-    await sendPasswordResetEmail(user.email, resetUrl);
+  // ────────────────────────────────────────── VERIFY RESET CODE
+  async verifyResetCode({ email, code }) {
+    const user = await userRepository.findByEmail(email);
+    if (!user) {
+      throw new BadRequestError('Invalid email or code');
+    }
+
+    const record = await resetTokenRepository.findValidCode(user.id, code);
+    if (!record) {
+      throw new BadRequestError('Invalid or expired reset code');
+    }
+
+    return { valid: true };
   },
 
   // ─────────────────────────────────────────────────── RESET PASSWORD
-  async resetPassword({ token, newPassword }) {
-    // Verify JWT
-    let decoded;
-    try {
-      decoded = verifyResetToken(token);
-    } catch {
-      throw new BadRequestError('Invalid or expired reset token');
-    }
+  async resetPassword({ email, code, token, newPassword }) {
+    let userId;
+    let record;
 
-    // Check DB record
-    const record = await resetTokenRepository.findValidToken(token);
-    if (!record) {
-      throw new BadRequestError('Reset token is invalid or has already been used');
+    if (email && code) {
+      // ── Code-based reset (OTP flow) ──
+      const user = await userRepository.findByEmail(email);
+      if (!user) {
+        throw new BadRequestError('Invalid email or code');
+      }
+
+      record = await resetTokenRepository.findValidCode(user.id, code);
+      if (!record) {
+        throw new BadRequestError('Invalid or expired reset code');
+      }
+      userId = user.id;
+    } else if (token) {
+      // ── Token-based reset (link flow — backward compatible) ──
+      let decoded;
+      try {
+        decoded = verifyResetToken(token);
+      } catch {
+        throw new BadRequestError('Invalid or expired reset token');
+      }
+
+      record = await resetTokenRepository.findValidToken(token);
+      if (!record) {
+        throw new BadRequestError('Reset token is invalid or has already been used');
+      }
+      userId = decoded.userId;
+    } else {
+      throw new BadRequestError('Email with code or reset token is required');
     }
 
     // Hash & update
     const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    await userRepository.updatePassword(decoded.userId, hashed);
+    await userRepository.updatePassword(userId, hashed);
 
     // Mark token as used
     await resetTokenRepository.markUsed(record.id);
 
     // Revoke all refresh tokens so user must re-login
-    await tokenRepository.revokeAllForUser(decoded.userId);
+    await tokenRepository.revokeAllForUser(userId);
+  },
+
+  // ─────────────────────────────────────────────────── GOOGLE OAUTH 2.0
+  async googleAuth({ idToken, ipAddress, userAgent }) {
+    if (!idToken) {
+      throw new BadRequestError('Google ID token is required');
+    }
+
+    let ticket;
+    try {
+      ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: config.google.clientId,
+      });
+    } catch {
+      throw new UnauthorizedError('Invalid or expired Google token');
+    }
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      throw new UnauthorizedError('Google token did not contain email');
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    // Find or create user
+    const { user } = await userRepository.findOrCreateOAuth({
+      email,
+      name: name || email.split('@')[0],
+      authProvider: 'google',
+      providerId: googleId,
+      avatarUrl: picture || null,
+    });
+
+    if (user.status === 'blocked') {
+      throw new ForbiddenError('Your account has been blocked. Contact support.');
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken({ userId: user.id, role: user.role });
+    const refreshTokenJwt = generateRefreshToken({ userId: user.id });
+
+    const expiresAt = new Date(
+      Date.now() + parseDuration(config.jwt.refreshExpiresIn)
+    );
+    await tokenRepository.create({
+      userId: user.id,
+      token: refreshTokenJwt,
+      expiresAt,
+      ipAddress,
+      userAgent,
+    });
+
+    return { user, accessToken, refreshToken: refreshTokenJwt };
+  },
+
+  // ─────────────────────────────────────────────────── APPLE SIGN-IN
+  async appleAuth({ idToken, authorizationCode, fullName, ipAddress, userAgent }) {
+    if (!idToken) {
+      throw new BadRequestError('Apple ID token is required');
+    }
+
+    let applePayload;
+    try {
+      applePayload = await appleSignin.verifyIdToken(idToken, {
+        audience: config.apple.clientId,
+        ignoreExpiration: false,
+      });
+    } catch {
+      throw new UnauthorizedError('Invalid or expired Apple token');
+    }
+
+    if (!applePayload || !applePayload.email) {
+      throw new UnauthorizedError('Apple token did not contain email');
+    }
+
+    const { sub: appleId, email } = applePayload;
+
+    // Apple only sends name on first sign-in
+    const userName = fullName
+      ? [fullName.givenName, fullName.familyName].filter(Boolean).join(' ') || email.split('@')[0]
+      : email.split('@')[0];
+
+    // Find or create user
+    const { user } = await userRepository.findOrCreateOAuth({
+      email,
+      name: userName,
+      authProvider: 'apple',
+      providerId: appleId,
+      avatarUrl: null,
+    });
+
+    if (user.status === 'blocked') {
+      throw new ForbiddenError('Your account has been blocked. Contact support.');
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken({ userId: user.id, role: user.role });
+    const refreshTokenJwt = generateRefreshToken({ userId: user.id });
+
+    const expiresAt = new Date(
+      Date.now() + parseDuration(config.jwt.refreshExpiresIn)
+    );
+    await tokenRepository.create({
+      userId: user.id,
+      token: refreshTokenJwt,
+      expiresAt,
+      ipAddress,
+      userAgent,
+    });
+
+    return { user, accessToken, refreshToken: refreshTokenJwt };
   },
 
   // ─────────────────────────────────────────────────── GET PROFILE

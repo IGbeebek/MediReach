@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { MEDICINE_CATEGORIES } from '../../data/mockData';
+import { MEDICINE_CATEGORIES } from '../../data/constants';
+import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/ui/Modal';
 
 export default function MedicineManagementPage() {
+  const { addToast } = useToast();
   const [list, setList] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -37,17 +39,20 @@ export default function MedicineManagementPage() {
           item.id === editing.id ? { ...item, ...form, price: Number(form.price), stock: Number(form.stock) } : item
         )
       );
+      addToast('Medicine updated successfully');
     } else {
       setList((prev) => [
         ...prev,
         { id: 'm' + (prev.length + 1), ...form, price: Number(form.price), stock: Number(form.stock), soldCount: 0, description: '' },
       ]);
+      addToast('Medicine added successfully');
     }
     setModalOpen(false);
   };
 
   const remove = (id) => {
     setList((prev) => prev.filter((m) => m.id !== id));
+    addToast('Medicine removed successfully');
   };
 
   return (

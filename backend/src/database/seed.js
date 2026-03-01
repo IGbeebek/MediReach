@@ -19,7 +19,7 @@ const seed = async () => {
     await client.query("BEGIN");
 
     // ── 1. Default admin account ─────────────────────────────────────
-    const hashedPassword = await bcrypt.hash("Admin@1234", SALT_ROUNDS);
+    const adminPassword = await bcrypt.hash("Admin@1234", SALT_ROUNDS);
 
     await client.query(
       `INSERT INTO users (name, email, password, role, status)
@@ -27,9 +27,25 @@ const seed = async () => {
        ON CONFLICT (email) DO NOTHING`,
       [
         "System Admin",
-        "admin@medireach.com",
-        hashedPassword,
+        "admin@gmail.com",
+        adminPassword,
         "admin",
+        "active",
+      ],
+    );
+
+    // ── 1b. Default pharmacist account ───────────────────────────────
+    const pharmacistPassword = await bcrypt.hash("Pharmacist@1234", SALT_ROUNDS);
+
+    await client.query(
+      `INSERT INTO users (name, email, password, role, status)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (email) DO NOTHING`,
+      [
+        "Amit Sharma",
+        "pharmacist@gmail.com",
+        pharmacistPassword,
+        "pharmacist",
         "active",
       ],
     );
@@ -61,9 +77,10 @@ const seed = async () => {
 
     await client.query("COMMIT");
     console.log(
-      `Seed completed — admin user + ${medicines.length} medicines inserted.`,
+      `Seed completed — admin + pharmacist users + ${medicines.length} medicines inserted.`,
     );
-    console.log("    Admin login: admin@medireach.com / Admin@1234");
+    console.log("    Admin login:      admin@gmail.com / Admin@1234");
+    console.log("    Pharmacist login: pharmacist@gmail.com / Pharmacist@1234");
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("Seed failed:", err.message);

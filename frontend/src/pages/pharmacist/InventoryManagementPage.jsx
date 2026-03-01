@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { MEDICINE_CATEGORIES } from '../../data/mockData';
+import { MEDICINE_CATEGORIES } from '../../data/constants';
+import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
 
 export default function InventoryManagementPage() {
+  const { addToast } = useToast();
   const [list, setList] = useState([]);
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState('name');
@@ -49,6 +51,7 @@ export default function InventoryManagementPage() {
             : m
         )
       );
+      addToast('Medicine updated successfully');
     } else {
       setList((prev) => [
         ...prev,
@@ -61,6 +64,7 @@ export default function InventoryManagementPage() {
           description: '',
         },
       ]);
+      addToast('Medicine added to inventory');
     }
     setModalOpen(false);
   };

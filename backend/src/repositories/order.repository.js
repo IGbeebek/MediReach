@@ -218,6 +218,41 @@ const orderRepository = {
     );
     return rows[0] || null;
   },
+
+  /**
+   * Update the delivery rider's current GPS position.
+   */
+  async updateDeliveryLocation(id, { lat, lng }) {
+    const { rows } = await query(
+      'UPDATE orders SET delivery_lat = $1, delivery_lng = $2 WHERE id = $3 RETURNING *',
+      [lat, lng, id]
+    );
+    return rows[0] || null;
+  },
+
+  /**
+   * Set destination coordinates for the order.
+   */
+  async setDestination(id, { lat, lng }) {
+    const { rows } = await query(
+      'UPDATE orders SET destination_lat = $1, destination_lng = $2 WHERE id = $3 RETURNING *',
+      [lat, lng, id]
+    );
+    return rows[0] || null;
+  },
+
+  /**
+   * Get delivery location data for an order.
+   */
+  async getTrackingData(id) {
+    const { rows } = await query(
+      `SELECT id, status, delivery_lat, delivery_lng, destination_lat, destination_lng,
+              shipping_address, updated_at
+       FROM orders WHERE id = $1`,
+      [id]
+    );
+    return rows[0] || null;
+  },
 };
 
 module.exports = orderRepository;

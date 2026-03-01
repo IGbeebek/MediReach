@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import UploadZone from '../../components/ui/UploadZone';
 import StatusBadge from '../../components/ui/StatusBadge';
 import EmptyState from '../../components/ui/EmptyState';
 
 export default function PrescriptionUploadPage() {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [file, setFile] = useState(null);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -22,6 +24,7 @@ export default function PrescriptionUploadPage() {
           if (p >= 100) {
             clearInterval(interval);
             setUploading(false);
+            addToast('Prescription uploaded! Pending verification.');
             return 100;
           }
           return p + 10;

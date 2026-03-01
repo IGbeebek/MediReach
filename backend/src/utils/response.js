@@ -8,7 +8,4 @@ const success = (res, data = null, message = 'Success', statusCode = 200) =>
 const created = (res, data = null, message = 'Created') =>
   success(res, data, message, 201);
 
-const fail = (res, message = 'Something went wrong', statusCode = 400, errors = null) =>
-  res.status(statusCode).json({ success: false, message, ...(errors && { errors }) });
-
-module.exports = { success, created, fail };
+module.exports = { success, created };

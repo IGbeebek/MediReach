@@ -1,24 +1,28 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import { api } from '../services/api';
+import { createContext, useContext, useState, useCallback } from "react";
+import { api } from "../services/api";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('medireach_user');
+    const stored = localStorage.getItem("medireach_user");
     return stored ? JSON.parse(stored) : null;
   });
 
-  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('medireach_token'));
-  const [refreshTokenStr, setRefreshTokenStr] = useState(() => localStorage.getItem('medireach_refresh'));
+  const [accessToken, setAccessToken] = useState(() =>
+    localStorage.getItem("medireach_token"),
+  );
+  const [refreshTokenStr, setRefreshTokenStr] = useState(() =>
+    localStorage.getItem("medireach_refresh"),
+  );
 
   const persistAuth = (userData, access, refresh) => {
     setUser(userData);
     setAccessToken(access);
     setRefreshTokenStr(refresh);
-    localStorage.setItem('medireach_user', JSON.stringify(userData));
-    localStorage.setItem('medireach_token', access);
-    localStorage.setItem('medireach_refresh', refresh);
+    localStorage.setItem("medireach_user", JSON.stringify(userData));
+    localStorage.setItem("medireach_token", access);
+    localStorage.setItem("medireach_refresh", refresh);
   };
 
   const login = useCallback(async (email, password) => {
@@ -28,22 +32,53 @@ export function AuthProvider({ children }) {
       persistAuth(u, at, rt);
       return { success: true, user: u };
     } catch (err) {
-      return { success: false, error: err.message || 'Login failed' };
+      return { success: false, error: err.message || "Login failed" };
     }
   }, []);
+
+  const loginWithGoogle = useCallback(async (idToken) => {
+    try {
+      const res = await api.googleAuth(idToken);
+      const { user: u, accessToken: at, refreshToken: rt } = res.data;
+      persistAuth(u, at, rt);
+      return { success: true, user: u };
+    } catch (err) {
+      return { success: false, error: err.message || "Google login failed" };
+    }
+  }, []);
+
+  const loginWithApple = useCallback(
+    async ({ idToken, authorizationCode, fullName }) => {
+      try {
+        const res = await api.appleAuth({
+          idToken,
+          authorizationCode,
+          fullName,
+        });
+        const { user: u, accessToken: at, refreshToken: rt } = res.data;
+        persistAuth(u, at, rt);
+        return { success: true, user: u };
+      } catch (err) {
+        return { success: false, error: err.message || "Apple login failed" };
+      }
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     try {
       if (refreshTokenStr && accessToken) {
         await api.logout(refreshTokenStr, accessToken);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setUser(null);
     setAccessToken(null);
     setRefreshTokenStr(null);
-    localStorage.removeItem('medireach_user');
-    localStorage.removeItem('medireach_token');
-    localStorage.removeItem('medireach_refresh');
+    localStorage.removeItem("medireach_user");
+    localStorage.removeItem("medireach_token");
+    localStorage.removeItem("medireach_refresh");
   }, [refreshTokenStr, accessToken]);
 
   const register = useCallback(async (data) => {
@@ -52,7 +87,7 @@ export function AuthProvider({ children }) {
         name: data.name,
         email: data.email,
         password: data.password,
-        role: data.role || 'customer',
+        role: data.role || "customer",
         phone: data.phone || undefined,
       });
       const { user: u } = res.data;
@@ -62,16 +97,25 @@ export function AuthProvider({ children }) {
       persistAuth(lu, at, rt);
       return { success: true, user: lu };
     } catch (err) {
-      return { success: false, error: err.message || 'Registration failed' };
+      return { success: false, error: err.message || "Registration failed" };
     }
   }, []);
 
-  const value = { user, login, logout, register, isAuthenticated: !!user, accessToken };
+  const value = {
+    user,
+    login,
+    logout,
+    register,
+    loginWithGoogle,
+    loginWithApple,
+    isAuthenticated: !!user,
+    accessToken,
+  };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }

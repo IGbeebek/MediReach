@@ -50,7 +50,20 @@ router.patch(
   orderController.updateStatus
 );
 
+router.patch(
+  '/:id/location',
+  authorize('admin', 'pharmacist'),
+  orderController.updateLocation
+);
+
+router.patch(
+  '/:id/destination',
+  authorize('admin', 'pharmacist'),
+  orderController.setDestination
+);
+
 // Shared — any authenticated user (authorization handled in service)
+router.get('/:id/tracking', orderController.getTracking);
 router.get('/:id', orderController.getOrder);
 
 module.exports = router;

@@ -6,16 +6,50 @@ const { query } = require('../database/db');
 
 const userRepository = {
   /**
-   * Create a new user.
+   * Create a new user (local email/password).
    */
   async create({ name, email, password, role = 'customer', phone = null, address = null }) {
     const sql = `
-      INSERT INTO users (name, email, password, role, phone, address)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, email, role, status, phone, address, created_at, updated_at
+      INSERT INTO users (name, email, password, role, phone, address, auth_provider)
+      VALUES ($1, $2, $3, $4, $5, $6, 'local')
+      RETURNING id, name, email, role, status, phone, address, auth_provider, avatar_url, created_at, updated_at
     `;
     const { rows } = await query(sql, [name, email, password, role, phone, address]);
     return rows[0];
+  },
+
+  /**
+   * Create or find a user via OAuth provider (Google / Apple).
+   * If a user with the same email already exists, update their provider info and return them.
+   */
+  async findOrCreateOAuth({ email, name, authProvider, providerId, avatarUrl = null }) {
+    // Check if user exists by email
+    const existing = await this.findByEmail(email);
+
+    if (existing) {
+      // Link provider if not already linked
+      if (existing.auth_provider === 'local' || existing.auth_provider !== authProvider) {
+        const sql = `
+          UPDATE users
+          SET auth_provider = $1, provider_id = $2, avatar_url = COALESCE($3, avatar_url)
+          WHERE id = $4
+          RETURNING id, name, email, role, status, phone, address, auth_provider, avatar_url, created_at, updated_at
+        `;
+        const { rows } = await query(sql, [authProvider, providerId, avatarUrl, existing.id]);
+        return { user: rows[0], isNew: false };
+      }
+      const { password: _, ...safeUser } = existing;
+      return { user: safeUser, isNew: false };
+    }
+
+    // Create new OAuth user (no password)
+    const sql = `
+      INSERT INTO users (name, email, role, auth_provider, provider_id, avatar_url)
+      VALUES ($1, $2, 'customer', $3, $4, $5)
+      RETURNING id, name, email, role, status, phone, address, auth_provider, avatar_url, created_at, updated_at
+    `;
+    const { rows } = await query(sql, [name, email, authProvider, providerId, avatarUrl]);
+    return { user: rows[0], isNew: true };
   },
 
   /**
@@ -130,6 +164,15 @@ const userRepository = {
 
     const { rows } = await query(sql, params);
     return rows[0].total;
+  },
+
+  /**
+   * Delete a user by id.
+   */
+  async deleteById(id) {
+    const sql = `DELETE FROM users WHERE id = $1 RETURNING id, name, email, role`;
+    const { rows } = await query(sql, [id]);
+    return rows[0] || null;
   },
 };
 

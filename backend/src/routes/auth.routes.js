@@ -1,8 +1,11 @@
-const { Router } = require('express');
-const authController = require('../controllers/auth.controller');
-const authenticate = require('../middlewares/authenticate');
-const validate = require('../middlewares/validate');
-const { authLimiter, passwordResetLimiter } = require('../middlewares/rateLimiter');
+const { Router } = require("express");
+const authController = require("../controllers/auth.controller");
+const authenticate = require("../middlewares/authenticate");
+const validate = require("../middlewares/validate");
+const {
+  authLimiter,
+  passwordResetLimiter,
+} = require("../middlewares/rateLimiter");
 const {
   registerSchema,
   loginSchema,
@@ -10,59 +13,78 @@ const {
   changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-} = require('../validators/auth.validator');
+  verifyResetCodeSchema,
+  googleAuthSchema,
+  appleAuthSchema,
+} = require("../validators/auth.validator");
 
 const router = Router();
 
 // ── Public (rate-limited) ────────────────────────────────────────────────────
 
 router.post(
-  '/register',
+  "/register",
   authLimiter,
   validate(registerSchema),
-  authController.register
+  authController.register,
 );
 
-router.post(
-  '/login',
-  authLimiter,
-  validate(loginSchema),
-  authController.login
-);
+router.post("/login", authLimiter, validate(loginSchema), authController.login);
 
 router.post(
-  '/refresh-token',
+  "/refresh-token",
   authLimiter,
   validate(refreshTokenSchema),
-  authController.refreshToken
+  authController.refreshToken,
 );
 
 router.post(
-  '/forgot-password',
+  "/forgot-password",
   passwordResetLimiter,
   validate(forgotPasswordSchema),
-  authController.forgotPassword
+  authController.forgotPassword,
 );
 
 router.post(
-  '/reset-password',
+  "/verify-reset-code",
+  passwordResetLimiter,
+  validate(verifyResetCodeSchema),
+  authController.verifyResetCode,
+);
+
+router.post(
+  "/reset-password",
   passwordResetLimiter,
   validate(resetPasswordSchema),
-  authController.resetPassword
+  authController.resetPassword,
 );
-
-// ── Protected ────────────────────────────────────────────────────────────────
-
-router.post('/logout', authenticate, authController.logout);
-router.post('/logout-all', authenticate, authController.logoutAll);
+// ── OAuth (rate-limited) ─────────────────────────────────────────────────────
 
 router.post(
-  '/change-password',
-  authenticate,
-  validate(changePasswordSchema),
-  authController.changePassword
+  "/google",
+  authLimiter,
+  validate(googleAuthSchema),
+  authController.googleAuth,
 );
 
-router.get('/me', authenticate, authController.getProfile);
+router.post(
+  "/apple",
+  authLimiter,
+  validate(appleAuthSchema),
+  authController.appleAuth,
+);
+// ── Protected ────────────────────────────────────────────────────────────────
+
+router.post("/logout", authenticate, authController.logout);
+router.post("/logout-all", authenticate, authController.logoutAll);
+
+router.post(
+  "/change-password",
+  authenticate,
+  validate(changePasswordSchema),
+  authController.changePassword,
+);
+
+router.get("/me", authenticate, authController.getProfile);
 
 module.exports = router;

@@ -30,6 +30,10 @@ function formatOrder(row) {
     prescriptionId: row.prescription_id,
     userName: row.user_name,
     userEmail: row.user_email,
+    deliveryLat: row.delivery_lat ?? null,
+    deliveryLng: row.delivery_lng ?? null,
+    destinationLat: row.destination_lat ?? null,
+    destinationLng: row.destination_lng ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -325,6 +329,56 @@ const orderService = {
 
     const updated = await orderRepository.findById(orderId);
     return formatOrder(updated);
+  },
+
+  /**
+   * Update delivery rider's GPS location (admin / pharmacist).
+   */
+  async updateDeliveryLocation(orderId, { lat, lng }) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new NotFoundError('Order not found');
+
+    if (order.status !== 'shipped') {
+      throw new BadRequestError('Can only update location for shipped orders');
+    }
+
+    await orderRepository.updateDeliveryLocation(orderId, { lat, lng });
+    return { success: true };
+  },
+
+  /**
+   * Set destination coordinates for an order (admin / pharmacist).
+   */
+  async setDestination(orderId, { lat, lng }) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new NotFoundError('Order not found');
+
+    await orderRepository.setDestination(orderId, { lat, lng });
+    return { success: true };
+  },
+
+  /**
+   * Get real-time tracking data for an order.
+   */
+  async getTrackingData(orderId, userId, role) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new NotFoundError('Order not found');
+
+    if (role === 'customer' && order.user_id !== userId) {
+      throw new ForbiddenError('Access denied');
+    }
+
+    const tracking = await orderRepository.getTrackingData(orderId);
+    return {
+      orderId: tracking.id,
+      status: tracking.status,
+      deliveryLat: tracking.delivery_lat,
+      deliveryLng: tracking.delivery_lng,
+      destinationLat: tracking.destination_lat,
+      destinationLng: tracking.destination_lng,
+      shippingAddress: tracking.shipping_address,
+      updatedAt: tracking.updated_at,
+    };
   },
 };
 

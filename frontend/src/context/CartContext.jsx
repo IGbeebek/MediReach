@@ -1,17 +1,26 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { useAuth } from './AuthContext';
-import api from '../services/api';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
+import { useAuth } from "./AuthContext";
+import api from "../services/api";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const { accessToken, isAuthenticated } = useAuth();
-  const [cart, setCart] = useState(null);   // full cart object from API
+  const [cart, setCart] = useState(null); // full cart object from API
   const [loading, setLoading] = useState(false);
 
   // Fetch cart from server whenever auth changes
   const fetchCart = useCallback(async () => {
-    if (!accessToken) { setCart(null); return; }
+    if (!accessToken) {
+      setCart(null);
+      return;
+    }
     try {
       setLoading(true);
       const res = await api.getCart(accessToken);
@@ -28,28 +37,44 @@ export function CartProvider({ children }) {
     else setCart(null);
   }, [isAuthenticated, fetchCart]);
 
-  const addToCart = useCallback(async (medicine, qty = 1) => {
-    if (!accessToken) return;
-    const res = await api.addToCart({ medicineId: medicine.id, quantity: qty }, accessToken);
-    setCart(res.data?.cart ?? null);
-  }, [accessToken]);
+  const addToCart = useCallback(
+    async (medicine, qty = 1) => {
+      if (!accessToken) return;
+      const res = await api.addToCart(
+        { medicineId: medicine.id, quantity: qty },
+        accessToken,
+      );
+      setCart(res.data?.cart ?? null);
+    },
+    [accessToken],
+  );
 
-  const updateQty = useCallback(async (medicineId, newQty) => {
-    if (!accessToken) return;
-    if (newQty <= 0) {
+  const updateQty = useCallback(
+    async (medicineId, newQty) => {
+      if (!accessToken) return;
+      if (newQty <= 0) {
+        const res = await api.removeCartItem(medicineId, accessToken);
+        setCart(res.data?.cart ?? null);
+      } else {
+        const res = await api.updateCartItem(
+          medicineId,
+          { quantity: newQty },
+          accessToken,
+        );
+        setCart(res.data?.cart ?? null);
+      }
+    },
+    [accessToken],
+  );
+
+  const removeFromCart = useCallback(
+    async (medicineId) => {
+      if (!accessToken) return;
       const res = await api.removeCartItem(medicineId, accessToken);
       setCart(res.data?.cart ?? null);
-    } else {
-      const res = await api.updateCartItem(medicineId, { quantity: newQty }, accessToken);
-      setCart(res.data?.cart ?? null);
-    }
-  }, [accessToken]);
-
-  const removeFromCart = useCallback(async (medicineId) => {
-    if (!accessToken) return;
-    const res = await api.removeCartItem(medicineId, accessToken);
-    setCart(res.data?.cart ?? null);
-  }, [accessToken]);
+    },
+    [accessToken],
+  );
 
   const clearCart = useCallback(async () => {
     if (!accessToken) return;
@@ -87,6 +112,6 @@ export function CartProvider({ children }) {
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error('useCart must be used within CartProvider');
+  if (!ctx) throw new Error("useCart must be used within CartProvider");
   return ctx;
 }

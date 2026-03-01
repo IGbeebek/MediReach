@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback } from "react";
 
 const ToastContext = createContext(null);
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((message, type = 'success') => {
+  const addToast = useCallback((message, type = "success") => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
@@ -30,12 +30,12 @@ function ToastContainer({ toasts }) {
         <div
           key={t.id}
           className={`rounded-lg px-4 py-3 shadow-card-hover flex items-center gap-2 animate-fade-up ${
-            t.type === 'error'
-              ? 'bg-soft-red/10 text-soft-red border border-soft-red/30'
-              : 'bg-primary/10 text-primary border border-primary/30'
+            t.type === "error"
+              ? "bg-soft-red/10 text-soft-red border border-soft-red/30"
+              : "bg-primary/10 text-primary border border-primary/30"
           }`}
         >
-          {t.type === 'error' ? (
+          {t.type === "error" ? (
             <span className="text-lg">⚠️</span>
           ) : (
             <span className="text-lg">✓</span>
@@ -49,6 +49,6 @@ function ToastContainer({ toasts }) {
 
 export function useToast() {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
+  if (!ctx) throw new Error("useToast must be used within ToastProvider");
   return ctx;
 }

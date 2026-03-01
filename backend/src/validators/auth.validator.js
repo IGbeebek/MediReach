@@ -74,9 +74,21 @@ const forgotPasswordSchema = z.object({
     .email('Invalid email address'),
 });
 
-// ── Reset Password (via token link) ──────────────────────────────────────────
+// ── Reset Password (via token link or OTP code) ──────────────────────────────────
 const resetPasswordSchema = z.object({
-  token: z.string({ required_error: 'Token is required' }).min(1),
+  token: z.string().min(1).optional(),
+
+  email: z
+    .string()
+    .trim()
+    .email('Invalid email address')
+    .optional(),
+
+  code: z
+    .string()
+    .length(6, 'Code must be 6 digits')
+    .regex(/^\d{6}$/, 'Code must be 6 digits')
+    .optional(),
 
   newPassword: z
     .string({ required_error: 'New password is required' })
@@ -86,6 +98,39 @@ const resetPasswordSchema = z.object({
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])/,
       'New password must include uppercase, lowercase, number, and special character'
     ),
+}).refine(
+  (data) => data.token || (data.email && data.code),
+  { message: 'Either token or email with code is required' }
+);
+
+// ── Verify Reset Code ─────────────────────────────────────────────────────
+const verifyResetCodeSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .trim()
+    .email('Invalid email address'),
+
+  code: z
+    .string({ required_error: 'Code is required' })
+    .length(6, 'Code must be 6 digits')
+    .regex(/^\d{6}$/, 'Code must be 6 digits'),
+});
+
+// ── Google OAuth ─────────────────────────────────────────────────────────────
+const googleAuthSchema = z.object({
+  idToken: z.string({ required_error: 'Google ID token is required' }).min(1),
+});
+
+// ── Apple Sign-In ────────────────────────────────────────────────────────────
+const appleAuthSchema = z.object({
+  idToken: z.string({ required_error: 'Apple ID token is required' }).min(1),
+  authorizationCode: z.string().optional(),
+  fullName: z
+    .object({
+      givenName: z.string().optional(),
+      familyName: z.string().optional(),
+    })
+    .optional(),
 });
 
 module.exports = {
@@ -95,4 +140,7 @@ module.exports = {
   changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  verifyResetCodeSchema,
+  googleAuthSchema,
+  appleAuthSchema,
 };

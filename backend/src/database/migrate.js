@@ -23,13 +23,17 @@ const migrate = async () => {
         id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         name          VARCHAR(100)  NOT NULL,
         email         VARCHAR(255)  NOT NULL UNIQUE,
-        password      VARCHAR(255)  NOT NULL,
+        password      VARCHAR(255),
         role          VARCHAR(20)   NOT NULL DEFAULT 'customer'
                         CHECK (role IN ('customer', 'pharmacist', 'admin')),
         status        VARCHAR(20)   NOT NULL DEFAULT 'active'
                         CHECK (status IN ('active', 'blocked')),
         phone         VARCHAR(20),
         address       TEXT,
+        auth_provider VARCHAR(20)   NOT NULL DEFAULT 'local'
+                        CHECK (auth_provider IN ('local', 'google', 'apple')),
+        provider_id   VARCHAR(255),
+        avatar_url    TEXT,
         created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
         updated_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
       );
@@ -71,6 +75,7 @@ const migrate = async () => {
         id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         user_id       UUID          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         token         TEXT          NOT NULL UNIQUE,
+        code          VARCHAR(6),
         expires_at    TIMESTAMPTZ   NOT NULL,
         used          BOOLEAN       NOT NULL DEFAULT FALSE,
         created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
@@ -79,6 +84,14 @@ const migrate = async () => {
 
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens (token);
+    `);
+
+    // Add code column if it doesn't exist (for existing databases)
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS code VARCHAR(6);
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$;
     `);
 
     // ── Medicines table ─────────────────────────────────────────────
@@ -238,6 +251,17 @@ const migrate = async () => {
     `);
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status);
+    `);
+
+    // Add delivery tracking columns if they don't exist (for existing databases)
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_lat DOUBLE PRECISION;
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_lng DOUBLE PRECISION;
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS destination_lat DOUBLE PRECISION;
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS destination_lng DOUBLE PRECISION;
+      EXCEPTION WHEN duplicate_column THEN NULL;
+      END $$;
     `);
 
     await client.query(`

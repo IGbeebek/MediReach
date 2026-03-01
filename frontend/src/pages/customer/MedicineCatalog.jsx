@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MEDICINE_CATEGORIES } from '../../data/mockData';
+import { MEDICINE_CATEGORIES } from '../../data/constants';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import Badge from '../../components/ui/Badge';

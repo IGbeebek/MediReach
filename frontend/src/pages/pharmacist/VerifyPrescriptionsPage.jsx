@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/ui/Modal';
 import StatusBadge from '../../components/ui/StatusBadge';
 
 export default function VerifyPrescriptionsPage() {
+  const { addToast } = useToast();
   const prescriptions = [];
   const pending = prescriptions.filter((r) => r.status === 'Pending');
   const [reasonModal, setReasonModal] = useState({ open: false, rx: null, action: null });
@@ -10,6 +12,7 @@ export default function VerifyPrescriptionsPage() {
 
   const handleApprove = (rx) => {
     // Mock: would update in real app
+    addToast('Prescription approved successfully');
     setReasonModal({ open: false });
   };
 
@@ -18,6 +21,7 @@ export default function VerifyPrescriptionsPage() {
   };
 
   const submitReject = () => {
+    addToast('Prescription rejected');
     setReasonModal({ open: false, rx: null, action: null });
     setReason('');
   };

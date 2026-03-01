@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import MapPlaceholder from '../../components/ui/MapPlaceholder';
+import LiveTrackingMap from '../../components/ui/LiveTrackingMap';
 import api from '../../services/api';
 
 const TRACK_STEPS = ['pending', 'verified', 'packed', 'shipped', 'delivered'];
@@ -16,7 +16,9 @@ export default function OrderTrackingPage() {
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tracking, setTracking] = useState(null);
 
+  // Fetch order data
   useEffect(() => {
     if (!orderId) { setLoading(false); return; }
     setLoading(true);
@@ -29,6 +31,50 @@ export default function OrderTrackingPage() {
       .catch(() => addToast('Order not found', 'error'))
       .finally(() => setLoading(false));
   }, [orderId, accessToken]);
+
+  // Poll tracking data every 5s when order is shipped
+  useEffect(() => {
+    if (!orderId || !order || order.status !== 'shipped') return;
+
+    const fetchTracking = () => {
+      api.getOrderTracking(orderId, accessToken)
+        .then((res) => setTracking(res.data?.tracking ?? null))
+        .catch(() => {});
+    };
+
+    fetchTracking();
+    const interval = setInterval(fetchTracking, 5000);
+    return () => clearInterval(interval);
+  }, [orderId, order?.status, accessToken]);
+
+  // Re-fetch order periodically to catch status changes
+  useEffect(() => {
+    if (!orderId || !order) return;
+    const terminal = ['delivered', 'cancelled'];
+    if (terminal.includes(order.status)) return;
+
+    const interval = setInterval(() => {
+      api.getOrder(orderId, accessToken)
+        .then((res) => {
+          const o = res.data?.order ?? null;
+          if (o) {
+            setOrder(o);
+            setItems(o.items ?? []);
+          }
+        })
+        .catch(() => {});
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [orderId, order?.status, accessToken]);
+
+  const handleLocationUpdate = useCallback(
+    ({ lat, lng }) => {
+      if (!orderId) return;
+      api.updateDeliveryLocation(orderId, { lat, lng }, accessToken).catch(() => {});
+    },
+    [orderId, accessToken]
+  );
 
   const statusIndex = order ? TRACK_STEPS.indexOf(order.status) : -1;
   const isCancelled = order?.status === 'cancelled';
@@ -123,7 +169,16 @@ export default function OrderTrackingPage() {
             </div>
           )}
 
-          <MapPlaceholder className="min-h-[240px]" />
+          <LiveTrackingMap
+              orderId={orderId}
+              orderStatus={order.status}
+              deliveryLat={tracking?.deliveryLat ?? order.deliveryLat}
+              deliveryLng={tracking?.deliveryLng ?? order.deliveryLng}
+              destinationLat={tracking?.destinationLat ?? order.destinationLat}
+              destinationLng={tracking?.destinationLng ?? order.destinationLng}
+              shippingAddress={order.shippingAddress}
+              onLocationUpdate={handleLocationUpdate}
+            />
         </>
       )}
     </div>

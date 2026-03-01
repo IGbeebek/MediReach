@@ -1,11 +1,24 @@
-import { useState } from 'react';
-import Avatar from '../ui/Avatar';
-import { useAuth } from '../../context/AuthContext';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Avatar from "../ui/Avatar";
+import { useAuth } from "../../context/AuthContext";
 
-export default function TopBar({ title, searchPlaceholder = 'Search...', onSearch }) {
+export default function TopBar({
+  title,
+  searchPlaceholder = "Search...",
+  onSearch,
+}) {
   const { user } = useAuth();
-  const [search, setSearch] = useState('');
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
   const [notifOpen, setNotifOpen] = useState(false);
+
+  const profilePath =
+    user?.role === "admin"
+      ? "/admin/profile"
+      : user?.role === "pharmacist"
+        ? "/pharmacist/profile"
+        : "/customer/profile";
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -14,10 +27,15 @@ export default function TopBar({ title, searchPlaceholder = 'Search...', onSearc
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-charcoal/10 bg-cream/95 backdrop-blur px-4 py-3 lg:pl-4 lg:pr-6">
-      <h1 className="font-fraunces text-xl font-semibold text-charcoal truncate">{title}</h1>
+      <h1 className="font-fraunces text-xl font-semibold text-charcoal truncate">
+        {title}
+      </h1>
       <div className="flex items-center gap-3 flex-1 justify-end max-w-2xl">
         {onSearch && (
-          <form onSubmit={handleSearch} className="hidden sm:block flex-1 max-w-xs">
+          <form
+            onSubmit={handleSearch}
+            className="hidden sm:block flex-1 max-w-xs"
+          >
             <input
               type="search"
               value={search}
@@ -39,15 +57,32 @@ export default function TopBar({ title, searchPlaceholder = 'Search...', onSearc
           </button>
           {notifOpen && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} aria-hidden />
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setNotifOpen(false)}
+                aria-hidden
+              />
               <div className="absolute right-0 top-full mt-1 w-72 rounded-xl border border-charcoal/10 bg-white py-2 shadow-card z-20">
-                <p className="px-4 py-2 text-sm font-medium text-charcoal">Notifications</p>
-                <p className="px-4 py-4 text-sm text-charcoal/50">No new notifications.</p>
+                <p className="px-4 py-2 text-sm font-medium text-charcoal">
+                  Notifications
+                </p>
+                <p className="px-4 py-4 text-sm text-charcoal/50">
+                  No new notifications.
+                </p>
               </div>
             </>
           )}
         </div>
-        <Avatar name={user?.name} size="sm" />
+        <button
+          type="button"
+          onClick={() => navigate(profilePath)}
+          className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-charcoal/10 transition-colors cursor-pointer"
+        >
+          <Avatar name={user?.name} size="sm" />
+          <span className="hidden sm:block text-sm font-medium text-charcoal truncate max-w-[120px]">
+            {user?.name}
+          </span>
+        </button>
       </div>
     </header>
   );

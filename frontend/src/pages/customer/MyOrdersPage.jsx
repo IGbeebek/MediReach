@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { ORDER_STATUSES } from '../../data/mockData';
+import { ORDER_STATUSES } from '../../data/constants';
 import api from '../../services/api';
 
 export default function MyOrdersPage() {

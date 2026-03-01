@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { PAYMENT_METHODS } from '../../data/mockData';
+import { PAYMENT_METHODS } from '../../data/constants';
 import QtyControls from '../../components/ui/QtyControls';
 import MapPlaceholder from '../../components/ui/MapPlaceholder';
 import api from '../../services/api';

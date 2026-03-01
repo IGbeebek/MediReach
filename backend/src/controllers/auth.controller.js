@@ -91,8 +91,18 @@ const authController = {
       return success(
         res,
         null,
-        'If an account with that email exists, a reset link has been sent'
+        'If an account with that email exists, a reset code has been sent'
       );
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // ──────────────────────────────────────── POST /api/auth/verify-reset-code
+  async verifyResetCode(req, res, next) {
+    try {
+      const result = await authService.verifyResetCode(req.body);
+      return success(res, result, 'Code verified successfully');
     } catch (err) {
       next(err);
     }
@@ -113,6 +123,44 @@ const authController = {
     try {
       const user = await authService.getProfile(req.user.userId);
       return success(res, { user }, 'Profile retrieved');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // ──────────────────────────────────────── POST /api/auth/google
+  async googleAuth(req, res, next) {
+    try {
+      const { idToken } = req.body;
+      const ipAddress =
+        req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'];
+      const userAgent = req.headers['user-agent'] || '';
+
+      const result = await authService.googleAuth({ idToken, ipAddress, userAgent });
+
+      return success(res, result, 'Google authentication successful');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // ──────────────────────────────────────── POST /api/auth/apple
+  async appleAuth(req, res, next) {
+    try {
+      const { idToken, authorizationCode, fullName } = req.body;
+      const ipAddress =
+        req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'];
+      const userAgent = req.headers['user-agent'] || '';
+
+      const result = await authService.appleAuth({
+        idToken,
+        authorizationCode,
+        fullName,
+        ipAddress,
+        userAgent,
+      });
+
+      return success(res, result, 'Apple authentication successful');
     } catch (err) {
       next(err);
     }

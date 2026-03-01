@@ -40,6 +40,27 @@ const userController = {
       next(err);
     }
   },
+
+  // ──────────────────────────────────────── POST /api/users/pharmacist
+  async createPharmacist(req, res, next) {
+    try {
+      const { name, email, password, phone, address } = req.body;
+      const user = await userService.createPharmacist({ name, email, password, phone, address });
+      return success(res, { user }, 'Pharmacist created successfully', 201);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // ──────────────────────────────────────── DELETE /api/users/:id
+  async deleteUser(req, res, next) {
+    try {
+      const user = await userService.deleteUser(req.params.id);
+      return success(res, { user }, 'User deleted successfully');
+    } catch (err) {
+      next(err);
+    }
+  },
 };
 
 module.exports = userController;

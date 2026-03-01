@@ -101,6 +101,51 @@ const orderController = {
       next(err);
     }
   },
+
+  /**
+   * GET /api/orders/:id/tracking
+   * Get real-time tracking data for an order.
+   */
+  async getTracking(req, res, next) {
+    try {
+      const tracking = await orderService.getTrackingData(
+        req.params.id,
+        req.user.userId,
+        req.user.role
+      );
+      return success(res, { tracking });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
+   * PATCH /api/orders/:id/location
+   * Admin / pharmacist: update delivery rider's GPS location.
+   */
+  async updateLocation(req, res, next) {
+    try {
+      const { lat, lng } = req.body;
+      await orderService.updateDeliveryLocation(req.params.id, { lat, lng });
+      return success(res, null, 'Location updated');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
+   * PATCH /api/orders/:id/destination
+   * Admin / pharmacist: set destination coordinates.
+   */
+  async setDestination(req, res, next) {
+    try {
+      const { lat, lng } = req.body;
+      await orderService.setDestination(req.params.id, { lat, lng });
+      return success(res, null, 'Destination set');
+    } catch (err) {
+      next(err);
+    }
+  },
 };
 
 module.exports = orderController;
