@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { PAYMENT_METHODS } from '../../data/constants';
 import QtyControls from '../../components/ui/QtyControls';
-import MapPlaceholder from '../../components/ui/MapPlaceholder';
 import api from '../../services/api';
 
 export default function CartCheckoutPage() {
-  const { items, subtotal, tax, deliveryFee, grandTotal, freeDeliveryThreshold, updateQty, removeFromCart, fetchCart, loading: cartLoading } = useCart();
+  const { items, subtotal, tax, deliveryFee, grandTotal, freeDeliveryThreshold, requiresPrescription, updateQty, removeFromCart, fetchCart, loading: cartLoading } = useCart();
   const { accessToken } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
@@ -19,25 +18,44 @@ export default function CartCheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(null); // holds placed order
   const [placing, setPlacing] = useState(false);
 
+  // Prescription selection state
+  const [approvedRx, setApprovedRx] = useState([]);
+  const [selectedRxId, setSelectedRxId] = useState('');
+  const [loadingRx, setLoadingRx] = useState(false);
+
+  // Fetch approved prescriptions if cart requires one
+  useEffect(() => {
+    if (requiresPrescription && accessToken) {
+      setLoadingRx(true);
+      api.getApprovedPrescriptions(accessToken)
+        .then((res) => setApprovedRx(res.data?.prescriptions ?? []))
+        .catch(() => {})
+        .finally(() => setLoadingRx(false));
+    }
+  }, [requiresPrescription, accessToken]);
+
   const handlePlaceOrder = async () => {
     if (!address.street.trim() || !address.phone.trim()) {
       addToast('Please fill in delivery address and phone.', 'error');
       setStep(2);
       return;
     }
+    if (requiresPrescription && !selectedRxId) {
+      addToast('Please select an approved prescription for prescription-only medicines.', 'error');
+      return;
+    }
     try {
       setPlacing(true);
       const shippingAddress = `${address.street}, ${address.city}`;
-      const res = await api.checkout(
-        { paymentMethod, shippingAddress, shippingPhone: address.phone },
-        accessToken
-      );
+      const body = { paymentMethod, shippingAddress, shippingPhone: address.phone };
+      if (selectedRxId) body.prescriptionId = selectedRxId;
+      const res = await api.checkout(body, accessToken);
       const order = res.data?.order;
       setOrderPlaced(order);
       await fetchCart(); // refresh cart (should be empty now)
       addToast('Order placed successfully!');
 
-      // If eSewa/Khalti, initiate payment flow
+      // If eSewa, initiate payment flow
       if (paymentMethod === 'esewa' && order) {
         try {
           const payRes = await api.initiateEsewa({ orderId: order.id }, accessToken);
@@ -61,16 +79,7 @@ export default function CartCheckoutPage() {
         }
       }
 
-      if (paymentMethod === 'khalti' && order) {
-        try {
-          const payRes = await api.initiateKhalti({ orderId: order.id }, accessToken);
-          const { paymentUrl } = payRes.data;
-          window.location.href = paymentUrl;
-          return;
-        } catch (err) {
-          addToast('Khalti initiation failed. You can pay later from order details.', 'error');
-        }
-      }
+
     } catch (err) {
       addToast(err.message || 'Checkout failed', 'error');
     } finally {
@@ -158,6 +167,44 @@ export default function CartCheckoutPage() {
               )}
             </div>
           </div>
+
+          {/* Prescription selector — shown only when cart has Rx-required items */}
+          {requiresPrescription && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📋</span>
+                <h3 className="font-fraunces font-semibold text-charcoal">Prescription required</h3>
+              </div>
+              <p className="text-sm text-charcoal/70">
+                Your cart contains prescription-only medicines. Select an approved prescription to continue.
+              </p>
+              {loadingRx ? (
+                <p className="text-sm text-charcoal/50">Loading prescriptions…</p>
+              ) : approvedRx.length === 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-soft-red font-medium">No approved prescriptions found.</p>
+                  <Link to="/customer/prescriptions" className="text-sm text-primary font-medium hover:underline">
+                    Upload a prescription →
+                  </Link>
+                </div>
+              ) : (
+                <select
+                  value={selectedRxId}
+                  onChange={(e) => setSelectedRxId(e.target.value)}
+                  className="w-full rounded-lg border border-charcoal/20 px-4 py-2.5 focus:border-primary outline-none bg-white"
+                >
+                  <option value="">— Select a prescription —</option>
+                  {approvedRx.map((rx) => (
+                    <option key={rx.id} value={rx.id}>
+                      Approved on {new Date(rx.updated_at).toLocaleDateString('en-NP', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      {rx.notes ? ` — ${rx.notes}` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
           <div className="flex justify-end">
             <button
               type="button"
@@ -195,7 +242,6 @@ export default function CartCheckoutPage() {
               placeholder="Phone"
               className="w-full rounded-lg border border-charcoal/20 px-4 py-2.5 focus:border-primary outline-none"
             />
-            <MapPlaceholder />
           </div>
           <div className="flex justify-between">
             <button type="button" onClick={() => setStep(1)} className="rounded-lg border border-charcoal/20 px-4 py-2.5 font-medium text-charcoal">

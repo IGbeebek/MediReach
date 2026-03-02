@@ -1,12 +1,27 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import StatCard from '../../components/ui/StatCard';
 import StatusBadge from '../../components/ui/StatusBadge';
+import api from '../../services/api';
 
 export default function CustomerDashboard() {
-  const { user } = useAuth();
-  const stats = { totalOrders: 0, prescriptions: 0, inTransit: 0, totalSpent: 0 };
-  const recent = [];
+  const { user, accessToken } = useAuth();
+  const { addToast } = useToast();
+  const [stats, setStats] = useState({ totalOrders: 0, prescriptions: 0, inTransit: 0, totalSpent: 0 });
+  const [recent, setRecent] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getCustomerStats(accessToken)
+      .then((res) => {
+        setStats(res.data.stats);
+        setRecent(res.data.recent || []);
+      })
+      .catch(() => addToast('Failed to load dashboard stats', 'error'))
+      .finally(() => setLoading(false));
+  }, [accessToken]);
 
   return (
     <div className="space-y-8 page-enter">
@@ -46,9 +61,9 @@ export default function CustomerDashboard() {
             <tbody>
               {recent.map((o) => (
                 <tr key={o.id} className="border-t border-charcoal/5 hover:bg-charcoal/[0.02]">
-                  <td className="px-4 py-3 font-medium">{o.id}</td>
-                  <td className="px-4 py-3 text-charcoal/70">{o.items.map((i) => i.name).join(', ')}</td>
-                  <td className="px-4 py-3">Rs. {o.total + o.deliveryFee}</td>
+                  <td className="px-4 py-3 font-medium">{o.orderNumber || o.id}</td>
+                  <td className="px-4 py-3 text-charcoal/70">{(o.items || []).map((i) => i.name).join(', ')}</td>
+                  <td className="px-4 py-3">Rs. {(o.total + o.deliveryFee).toLocaleString()}</td>
                   <td className="px-4 py-3 text-charcoal/70">{o.date}</td>
                   <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
                   <td className="px-4 py-3">

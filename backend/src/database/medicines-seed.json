@@ -10,7 +10,7 @@
     "description": "Calcium channel blocker used to treat high blood pressure (hypertension) and angina. Take once daily as prescribed. Store below 30 °C in a dry place.",
     "imageUrl": "/uploads/medicines/amlodipine-5mg.jpg",
     "expiryDate": "2027-06-30",
-    "soldCount": 342
+    "soldCount": 0
   },
   {
     "name": "Amoxicillin 500 mg",
@@ -23,7 +23,7 @@
     "description": "Broad-spectrum penicillin antibiotic for bacterial infections of the ear, nose, throat, urinary tract, and skin. Complete the full course even if you feel better.",
     "imageUrl": "/uploads/medicines/amoxicillin-500mg.jpg",
     "expiryDate": "2027-03-15",
-    "soldCount": 518
+    "soldCount": 0
   },
   {
     "name": "Azithromycin 500 mg",
@@ -36,7 +36,7 @@
     "description": "Macrolide antibiotic effective against respiratory tract infections, skin infections, and sexually transmitted diseases. Usually taken as a 3-day or 5-day course.",
     "imageUrl": "/uploads/medicines/azithromycin-500mg.jpg",
     "expiryDate": "2027-09-20",
-    "soldCount": 287
+    "soldCount": 0
   },
   {
     "name": "Cetirizine 10 mg",
@@ -49,7 +49,7 @@
     "description": "Second-generation antihistamine for allergic rhinitis, hay fever, and urticaria. Provides 24-hour relief from sneezing, runny nose, and itchy eyes. May cause mild drowsiness.",
     "imageUrl": "/uploads/medicines/cetirizine-10mg.jpg",
     "expiryDate": "2027-12-31",
-    "soldCount": 1240
+    "soldCount": 0
   },
   {
     "name": "Clotrimazole Cream 1 %",
@@ -62,7 +62,7 @@
     "description": "Topical antifungal cream for athlete's foot, ringworm, jock itch, and yeast infections. Apply a thin layer to the affected area twice daily for 2-4 weeks.",
     "imageUrl": "/uploads/medicines/clotrimazole-cream.jpg",
     "expiryDate": "2028-01-15",
-    "soldCount": 198
+    "soldCount": 0
   },
   {
     "name": "Ibuprofen 400 mg",
@@ -75,7 +75,7 @@
     "description": "Non-steroidal anti-inflammatory drug (NSAID) for pain relief, fever reduction, and inflammation. Effective for headaches, dental pain, menstrual cramps, and muscle aches. Take with food.",
     "imageUrl": "/uploads/medicines/ibuprofen-400mg.jpg",
     "expiryDate": "2027-08-10",
-    "soldCount": 876
+    "soldCount": 0
   },
   {
     "name": "Metformin 500 mg",
@@ -88,7 +88,7 @@
     "description": "First-line oral medication for type 2 diabetes. Helps control blood sugar levels by improving insulin sensitivity. Take with meals to reduce gastrointestinal side effects.",
     "imageUrl": "/uploads/medicines/metformin-500mg.jpg",
     "expiryDate": "2027-11-30",
-    "soldCount": 1580
+    "soldCount": 0
   },
   {
     "name": "Omeprazole 20 mg",
@@ -101,7 +101,7 @@
     "description": "Proton pump inhibitor (PPI) for gastric and duodenal ulcers, GERD, and acid reflux. Take 30 minutes before breakfast. Do not crush or chew the capsule.",
     "imageUrl": "/uploads/medicines/omeprazole-20mg.jpg",
     "expiryDate": "2027-05-25",
-    "soldCount": 714
+    "soldCount": 0
   },
   {
     "name": "Paracetamol 500 mg",
@@ -114,7 +114,7 @@
     "description": "Widely used analgesic and antipyretic for mild to moderate pain and fever. Safe when used at recommended doses. Do not exceed 4 g per day. Avoid with alcohol.",
     "imageUrl": "/uploads/medicines/paracetamol-500mg.jpg",
     "expiryDate": "2028-02-28",
-    "soldCount": 2350
+    "soldCount": 0
   },
   {
     "name": "Vitamin D3 60,000 IU",
@@ -127,6 +127,6 @@
     "description": "High-dose vitamin D supplement for treating deficiency. Usually taken once weekly for 8 weeks, then monthly maintenance. Helps calcium absorption and supports bone health.",
     "imageUrl": "/uploads/medicines/vitamin-d3-60k.jpg",
     "expiryDate": "2028-06-30",
-    "soldCount": 430
+    "soldCount": 0
   }
 ]

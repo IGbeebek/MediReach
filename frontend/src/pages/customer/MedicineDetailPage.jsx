@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
+import { useNotifications } from '../../context/NotificationContext';
 import Breadcrumb from '../../components/ui/Breadcrumb';
 import ProgressBar from '../../components/ui/ProgressBar';
 import Badge from '../../components/ui/Badge';
@@ -15,6 +16,7 @@ export default function MedicineDetailPage() {
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { addToast } = useToast();
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     setLoading(true);
@@ -52,7 +54,8 @@ export default function MedicineDetailPage() {
   const handleAddToCart = async () => {
     try {
       await addToCart(medicine, qty);
-      addToast('Added to cart');
+      addToast(`${medicine.name} added to cart`, 'cart', { name: medicine.name, qty, price: medicine.price });
+      addNotification(`${medicine.name} added to cart`, 'cart', { name: medicine.name, qty, price: medicine.price });
     } catch (err) {
       addToast(err.message || 'Failed to add to cart', 'error');
     }

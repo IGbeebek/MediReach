@@ -234,7 +234,7 @@ const migrate = async () => {
         delivery_fee     DECIMAL(12,2)   NOT NULL DEFAULT 0,
         grand_total      DECIMAL(12,2)   NOT NULL DEFAULT 0,
         payment_method   VARCHAR(20)     NOT NULL DEFAULT 'cod'
-                           CHECK (payment_method IN ('cod', 'esewa', 'khalti')),
+                           CHECK (payment_method IN ('cod', 'esewa')),
         payment_status   VARCHAR(20)     NOT NULL DEFAULT 'pending'
                            CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
         shipping_address TEXT,
@@ -296,7 +296,7 @@ const migrate = async () => {
         id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         order_id          UUID            NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
         method            VARCHAR(20)     NOT NULL
-                            CHECK (method IN ('cod', 'esewa', 'khalti')),
+                            CHECK (method IN ('cod', 'esewa')),
         amount            DECIMAL(12,2)   NOT NULL,
         status            VARCHAR(20)     NOT NULL DEFAULT 'pending'
                             CHECK (status IN ('pending', 'success', 'failed', 'refunded')),

@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Footer from "../../components/layout/Footer";
+import api from "../../services/api";
 
 const features = [
   {
@@ -25,7 +27,7 @@ const features = [
   {
     icon: "💳",
     title: "Flexible Payment",
-    desc: "Pay via COD, eSewa, or Khalti — your choice.",
+    desc: "Pay via COD or eSewa — your choice.",
   },
   {
     icon: "📞",
@@ -34,7 +36,7 @@ const features = [
   },
 ];
 
-const stats = [
+const defaultStats = [
   { value: "0", label: "Orders Delivered" },
   { value: "0", label: "Medicines" },
   { value: "0", label: "Partner Pharmacies" },
@@ -42,6 +44,16 @@ const stats = [
 ];
 
 export default function LandingPage() {
+  const [stats, setStats] = useState(defaultStats);
+
+  useEffect(() => {
+    api.getPublicStats()
+      .then((res) => {
+        if (res.data?.stats) setStats(res.data.stats);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen bg-cream">
       <nav className="sticky top-0 z-40 flex items-center justify-between px-4 py-4 lg:px-8 bg-cream/95 backdrop-blur border-b border-charcoal/5">

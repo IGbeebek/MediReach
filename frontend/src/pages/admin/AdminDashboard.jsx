@@ -1,8 +1,25 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import StatCard from '../../components/ui/StatCard';
+import api from '../../services/api';
 
 export default function AdminDashboard() {
-  const stats = { totalUsers: 0, totalRevenue: 0, ordersToday: 0, medicinesListed: 0, activePharmacists: 0, pendingPrescriptions: 0 };
-  const recentActivity = [];
+  const { accessToken } = useAuth();
+  const { addToast } = useToast();
+  const [stats, setStats] = useState({ totalUsers: 0, totalRevenue: 0, ordersToday: 0, medicinesListed: 0, activePharmacists: 0, pendingPrescriptions: 0 });
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getAdminStats(accessToken)
+      .then((res) => {
+        setStats(res.data.stats);
+        setRecentActivity(res.data.recentActivity || []);
+      })
+      .catch(() => addToast('Failed to load dashboard stats', 'error'))
+      .finally(() => setLoading(false));
+  }, [accessToken]);
 
   return (
     <div className="space-y-8 page-enter">

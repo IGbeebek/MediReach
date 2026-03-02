@@ -6,6 +6,7 @@ import {
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { ToastProvider } from "./context/ToastContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import { ROLES } from "./data/constants";
@@ -24,6 +25,8 @@ import PrescriptionUploadPage from "./pages/customer/PrescriptionUploadPage";
 import OrderTrackingPage from "./pages/customer/OrderTrackingPage";
 import MyOrdersPage from "./pages/customer/MyOrdersPage";
 import CustomerProfilePage from "./pages/customer/CustomerProfilePage";
+import EsewaSuccessPage from "./pages/customer/EsewaSuccessPage";
+import EsewaFailurePage from "./pages/customer/EsewaFailurePage";
 
 import PharmacistDashboard from "./pages/pharmacist/PharmacistDashboard";
 import InventoryManagementPage from "./pages/pharmacist/InventoryManagementPage";
@@ -93,6 +96,16 @@ const router = createBrowserRouter([
         path: "profile",
         element: <CustomerProfilePage />,
         handle: { title: "Profile" },
+      },
+      {
+        path: "payment/esewa/success",
+        element: <EsewaSuccessPage />,
+        handle: { title: "eSewa Payment" },
+      },
+      {
+        path: "payment/esewa/failure",
+        element: <EsewaFailurePage />,
+        handle: { title: "eSewa Payment" },
       },
     ],
   },
@@ -181,9 +194,11 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <CartProvider>
-          <RouterProvider router={router} />
-        </CartProvider>
+        <NotificationProvider>
+          <CartProvider>
+            <RouterProvider router={router} />
+          </CartProvider>
+        </NotificationProvider>
       </ToastProvider>
     </AuthProvider>
   );

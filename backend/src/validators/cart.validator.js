@@ -26,9 +26,9 @@ const updateCartItemSchema = z.object({
 });
 
 const checkoutSchema = z.object({
-  paymentMethod: z.enum(['cod', 'esewa', 'khalti'], {
+  paymentMethod: z.enum(['cod', 'esewa'], {
     required_error: 'paymentMethod is required',
-    invalid_type_error: 'paymentMethod must be cod, esewa, or khalti',
+    invalid_type_error: 'paymentMethod must be cod or esewa',
   }),
   shippingAddress: z
     .string({ required_error: 'shippingAddress is required' })
@@ -54,16 +54,10 @@ const verifyEsewaSchema = z.object({
   data: z.string({ required_error: 'Encoded data is required' }).min(1),
 });
 
-const verifyKhaltiSchema = z.object({
-  pidx: z.string({ required_error: 'pidx is required' }).min(1),
-  orderId: z.string({ required_error: 'orderId is required' }).uuid(),
-});
-
 module.exports = {
   addToCartSchema,
   updateCartItemSchema,
   checkoutSchema,
   initiatePaymentSchema,
   verifyEsewaSchema,
-  verifyKhaltiSchema,
 };

@@ -1,11 +1,29 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import StatCard from '../../components/ui/StatCard';
 import StatusBadge from '../../components/ui/StatusBadge';
+import api from '../../services/api';
 
 export default function PharmacistDashboard() {
-  const stats = { prescriptionsToVerify: 0, lowStockAlerts: 0, ordersToday: 0, revenueToday: 0 };
-  const pendingRx = [];
-  const lowStock = [];
+  const { accessToken } = useAuth();
+  const { addToast } = useToast();
+  const [stats, setStats] = useState({ prescriptionsToVerify: 0, lowStockAlerts: 0, ordersToday: 0, revenueToday: 0 });
+  const [pendingRx, setPendingRx] = useState([]);
+  const [lowStock, setLowStock] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getPharmacistStats(accessToken)
+      .then((res) => {
+        setStats(res.data.stats);
+        setPendingRx(res.data.pendingRx || []);
+        setLowStock(res.data.lowStock || []);
+      })
+      .catch(() => addToast('Failed to load dashboard stats', 'error'))
+      .finally(() => setLoading(false));
+  }, [accessToken]);
 
   return (
     <div className="space-y-8 page-enter">

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MEDICINE_CATEGORIES } from '../../data/constants';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
+import { useNotifications } from '../../context/NotificationContext';
 import Badge from '../../components/ui/Badge';
 import api from '../../services/api';
 
@@ -14,6 +15,7 @@ export default function MedicineCatalog() {
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { addToast } = useToast();
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     setLoading(true);
@@ -40,7 +42,8 @@ export default function MedicineCatalog() {
     e.preventDefault();
     try {
       await addToCart(medicine, 1);
-      addToast('Added to cart');
+      addToast(`${medicine.name} added to cart`, 'cart', { name: medicine.name, qty: 1, price: medicine.price });
+      addNotification(`${medicine.name} added to cart`, 'cart', { name: medicine.name, qty: 1, price: medicine.price });
     } catch (err) {
       addToast(err.message || 'Failed to add to cart', 'error');
     }

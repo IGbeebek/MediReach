@@ -38,38 +38,6 @@ const paymentController = {
     }
   },
 
-  /* ─────────────────────────────── Khalti ────────────────────────── */
-
-  /**
-   * POST /api/payments/khalti/initiate
-   * Body: { orderId }
-   * Returns Khalti payment URL + pidx.
-   */
-  async initiateKhalti(req, res, next) {
-    try {
-      const { orderId } = req.body;
-      const result = await paymentService.initiateKhalti(orderId, req.user.userId);
-      return success(res, result, 'Khalti payment initiated');
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  /**
-   * POST /api/payments/khalti/verify
-   * Body: { pidx, orderId }
-   * Verifies the Khalti payment and updates order status.
-   */
-  async verifyKhalti(req, res, next) {
-    try {
-      const { pidx, orderId } = req.body;
-      const result = await paymentService.verifyKhalti(pidx, orderId);
-      return success(res, result, 'Khalti payment verified');
-    } catch (err) {
-      next(err);
-    }
-  },
-
   /* ─────────────────────────────── Shared ────────────────────────── */
 
   /**

@@ -49,7 +49,7 @@ npm run preview   # preview production build
 - `/customer` — Dashboard (stats, recent orders, quick actions)
 - `/customer/medicines` — Medicine catalog (search, filter, sort)
 - `/customer/medicines/:id` — Medicine detail + alternatives
-- `/customer/cart` — Cart & checkout (address, payment: COD / eSewa / Khalti)
+- `/customer/cart` — Cart & checkout (address, payment: COD / eSewa)
 - `/customer/prescriptions` — Upload prescriptions + past list
 - `/customer/track` — Order tracking (real-time map with Leaflet)
 - `/customer/orders` — My orders (table, filter by status)
@@ -78,7 +78,7 @@ npm run preview   # preview production build
 - **Real-time tracking** — Leaflet maps with delivery simulation, route polylines, ETA
 - **MediBot** — FAB bottom-right, slide-up chat; keyword replies (customer only)
 - **Toasts** — Success/error popup notifications across all pages
-- **Payments** — eSewa and Khalti integration + Cash on Delivery
+- **Payments** — eSewa integration + Cash on Delivery
 - **Shared components** — Modal, Badge, Avatar, StatusBadge, StatCard, EmptyState, Breadcrumb, ProgressBar, QtyControls, UploadZone, LiveTrackingMap
 - **Sidebar** — Role-aware nav, active state, cart/prescription badge counts, clickable user chip → profile
 - **Top bar** — Page title (from route handle), notification bell, clickable avatar → profile

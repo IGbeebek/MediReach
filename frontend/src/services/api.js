@@ -78,6 +78,18 @@ export const api = {
   getMedicines: (params = "") =>
     request(`/medicines${params ? "?" + params : ""}`),
   getMedicine: (id) => request(`/medicines/${id}`),
+  createMedicine: (body, token) =>
+    request("/medicines", { method: "POST", body, token }),
+  updateMedicine: (id, body, token) =>
+    request(`/medicines/${id}`, { method: "PUT", body, token }),
+  deleteMedicine: (id, token) =>
+    request(`/medicines/${id}`, { method: "DELETE", token }),
+
+  // ─── Stats / Dashboard ───
+  getPublicStats: () => request("/stats/public"),
+  getAdminStats: (token) => request("/stats/admin", { token }),
+  getCustomerStats: (token) => request("/stats/customer", { token }),
+  getPharmacistStats: (token) => request("/stats/pharmacist", { token }),
 
   // ─── Cart ───
   getCart: (token) => request("/cart", { token }),
@@ -126,12 +138,6 @@ export const api = {
   verifyEsewa: (body, token) =>
     request("/payments/esewa/verify", { method: "POST", body, token }),
 
-  initiateKhalti: (body, token) =>
-    request("/payments/khalti/initiate", { method: "POST", body, token }),
-
-  verifyKhalti: (body, token) =>
-    request("/payments/khalti/verify", { method: "POST", body, token }),
-
   getOrderPayments: (orderId, token) =>
     request(`/payments/order/${orderId}`, { token }),
 
@@ -149,6 +155,40 @@ export const api = {
 
   deleteUser: (id, token) =>
     request(`/users/${id}`, { method: "DELETE", token }),
+
+  // ─── Prescriptions ───
+  uploadPrescription: (file, notes, token) => {
+    const fd = new FormData();
+    fd.append("prescription", file);
+    if (notes) fd.append("notes", notes);
+    return request("/prescriptions", { method: "POST", body: fd, token });
+  },
+
+  getMyPrescriptions: (token) => request("/prescriptions/my", { token }),
+
+  getApprovedPrescriptions: (token) =>
+    request("/prescriptions/approved", { token }),
+
+  getAllPrescriptions: (status, token) =>
+    request(`/prescriptions${status ? "?status=" + status : ""}`, { token }),
+
+  getPrescription: (id, token) => request(`/prescriptions/${id}`, { token }),
+
+  reviewPrescription: (id, body, token) =>
+    request(`/prescriptions/${id}/review`, { method: "PATCH", body, token }),
+
+  // ─── Chat (MediBot) ───
+  chatWithBot: (message, history, { image, audio, language } = {}) =>
+    request("/chat", {
+      method: "POST",
+      body: { message, history, image, audio, language },
+    }),
+
+  transcribeAudio: (audio, language) =>
+    request("/chat/transcribe", {
+      method: "POST",
+      body: { audio, language },
+    }),
 };
 
 export default api;

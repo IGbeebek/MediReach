@@ -23,9 +23,15 @@ app.use(
 );
 
 // ── Body parsers ─────────────────────────────────────────────────────────────
+// Chat endpoint needs larger limit for base64 audio/images — must come BEFORE the global parser
+app.use('/api/chat', express.json({ limit: '5mb' }));
 app.use(express.json({ limit: '10kb' }));        // small payloads only (prevents DoS)
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// ── Serve uploaded files ─────────────────────────────────────────────────────
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ── Global rate limiter ──────────────────────────────────────────────────────
 app.use('/api', apiLimiter);

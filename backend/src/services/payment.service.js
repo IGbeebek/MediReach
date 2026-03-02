@@ -1,17 +1,11 @@
 /**
- * Payment Service — business logic for COD, eSewa, and Khalti payments.
+ * Payment Service — business logic for COD and eSewa payments.
  *
  * eSewa flow:
  *   1. Frontend calls POST /api/payments/esewa/initiate  → gets form data
  *   2. Frontend submits form to eSewa
  *   3. eSewa redirects to success/failure URL with encoded `data` param
  *   4. Frontend calls POST /api/payments/esewa/verify with the data param
- *
- * Khalti flow:
- *   1. Frontend calls POST /api/payments/khalti/initiate → gets pidx + payment_url
- *   2. Frontend redirects to Khalti payment_url
- *   3. Khalti redirects back to return_url with pidx + other params
- *   4. Frontend calls POST /api/payments/khalti/verify with pidx + orderId
  *
  * COD flow:
  *   1. Checkout sets paymentMethod = 'cod' and paymentStatus = 'pending'
@@ -218,127 +212,6 @@ const paymentService = {
     await orderRepository.updatePaymentStatus(payment.order_id, 'failed');
 
     throw new BadRequestError('eSewa payment was not completed');
-  },
-
-  /* ──────────────────────────────────────────────── Khalti ─────── */
-
-  /**
-   * Initiate Khalti payment — calls Khalti's initiation API.
-   */
-  async initiateKhalti(orderId, userId) {
-    const order = await orderRepository.findById(orderId);
-    if (!order) throw new NotFoundError('Order not found');
-    if (order.user_id !== userId) throw new BadRequestError('Access denied');
-    if (order.payment_method !== 'khalti') {
-      throw new BadRequestError('Order payment method is not Khalti');
-    }
-    if (order.payment_status === 'paid') {
-      throw new ConflictError('Order is already paid');
-    }
-
-    const amountInPaisa = Math.round(parseFloat(order.grand_total) * 100);
-    const purchaseOrderId = order.order_number;
-    const purchaseOrderName = `MediReach Order ${order.order_number}`;
-
-    const payload = {
-      return_url: `${config.clientUrl}/customer/payment/khalti/verify`,
-      website_url: config.clientUrl,
-      amount: amountInPaisa,
-      purchase_order_id: purchaseOrderId,
-      purchase_order_name: purchaseOrderName,
-    };
-
-    // Call Khalti initiation API
-    const response = await fetch(config.khalti.initiateUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Key ${config.khalti.secretKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.pidx) {
-      console.error('Khalti initiation failed:', result);
-      throw new BadRequestError(result.detail || 'Failed to initiate Khalti payment');
-    }
-
-    // Create pending payment record
-    const idempotencyKey = makeIdempotencyKey(orderId, 'khalti');
-    await paymentRepository.create({
-      orderId,
-      method: 'khalti',
-      amount: parseFloat(order.grand_total),
-      status: 'pending',
-      transactionId: result.pidx,
-      idempotencyKey,
-    });
-
-    return {
-      pidx: result.pidx,
-      paymentUrl: result.payment_url,
-      expiresAt: result.expires_at,
-    };
-  },
-
-  /**
-   * Verify Khalti payment — calls Khalti's lookup API.
-   */
-  async verifyKhalti(pidx, orderId) {
-    // Find payment by transaction_id = pidx
-    const payment = await paymentRepository.findByTransactionId(pidx);
-    if (!payment) throw new NotFoundError('Payment record not found');
-
-    // Idempotency
-    if (payment.status === 'success') {
-      return { message: 'Payment already verified', orderId: payment.order_id };
-    }
-
-    // Call Khalti lookup API
-    const response = await fetch(config.khalti.lookupUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Key ${config.khalti.secretKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ pidx }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error('Khalti lookup failed:', result);
-      throw new BadRequestError(result.detail || 'Khalti verification failed');
-    }
-
-    if (result.status === 'Completed') {
-      await paymentRepository.updateStatus(payment.id, {
-        status: 'success',
-        providerRef: result.pidx,
-        transactionId: pidx,
-        providerResponse: result,
-      });
-      await orderRepository.updatePaymentStatus(payment.order_id, 'paid');
-
-      // If order was pending, move to verified
-      const order = await orderRepository.findById(payment.order_id);
-      if (order && order.status === 'pending') {
-        await orderRepository.updateStatus(payment.order_id, 'verified');
-      }
-
-      return { message: 'Payment verified successfully', orderId: payment.order_id };
-    }
-
-    // Payment not completed
-    await paymentRepository.updateStatus(payment.id, {
-      status: 'failed',
-      providerResponse: result,
-    });
-    await orderRepository.updatePaymentStatus(payment.order_id, 'failed');
-
-    throw new BadRequestError(`Khalti payment status: ${result.status}`);
   },
 
   /* ──────────────────────────────────────────── Shared ──────────── */

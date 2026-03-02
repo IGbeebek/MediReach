@@ -42,14 +42,6 @@ module.exports = {
     verifyUrl: process.env.ESEWA_VERIFY_URL || 'https://rc-epay.esewa.com.np/api/epay/transaction/status/',
   },
 
-  // ── Khalti ─────────────────────────────────────────────────────────
-  khalti: {
-    secretKey: process.env.KHALTI_SECRET_KEY || '',
-    publicKey: process.env.KHALTI_PUBLIC_KEY || '',
-    initiateUrl: process.env.KHALTI_INITIATE_URL || 'https://a.khalti.com/api/v2/epayment/initiate/',
-    lookupUrl: process.env.KHALTI_LOOKUP_URL || 'https://a.khalti.com/api/v2/epayment/lookup/',
-  },
-
   // ── Google OAuth 2.0 ──────────────────────────────────────────────
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -63,4 +55,7 @@ module.exports = {
     keyId: process.env.APPLE_KEY_ID || '',
     privateKey: (process.env.APPLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
   },
+
+  // ── Google Gemini AI (MediBot) ────────────────────────────────────
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
 };

@@ -1,18 +1,47 @@
-const weeklySalesData = [0, 0, 0, 0, 0, 0, 0];
-const orderStatusDonut = [
-  { label: 'Delivered', value: 0, color: '#4a7c59' },
-  { label: 'Shipped', value: 0, color: '#3b82f6' },
-  { label: 'Packed', value: 0, color: '#f59e0b' },
-  { label: 'Pending', value: 0, color: '#6b7280' },
-];
-const topSellingMedicines = [];
-const revenueLineData = [0, 0, 0, 0, 0, 0, 0];
-
-const maxBar = Math.max(...weeklySalesData, 1);
-const maxLine = Math.max(...revenueLineData, 1);
-const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import api from '../../services/api';
 
 export default function AnalyticsPage() {
+  const { accessToken } = useAuth();
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [weeklySalesData, setWeeklySalesData] = useState([0, 0, 0, 0, 0, 0, 0]);
+  const [orderStatusDonut, setOrderStatusDonut] = useState([
+    { label: 'Delivered', value: 0, color: '#4a7c59' },
+    { label: 'Shipped', value: 0, color: '#3b82f6' },
+    { label: 'Packed', value: 0, color: '#f59e0b' },
+    { label: 'Pending', value: 0, color: '#6b7280' },
+  ]);
+  const [topSellingMedicines, setTopSellingMedicines] = useState([]);
+  const [revenueLineData, setRevenueLineData] = useState([0, 0, 0, 0, 0, 0, 0]);
+  const [prescriptionRate, setPrescriptionRate] = useState({ approved: 0, rejected: 0, pending: 0, total: 0 });
+
+  useEffect(() => {
+    api.getAdminStats(accessToken)
+      .then((res) => {
+        const a = res.data.analytics;
+        if (a) {
+          setWeeklySalesData(a.weeklySales || [0, 0, 0, 0, 0, 0, 0]);
+          setOrderStatusDonut(a.orderStatusDonut || orderStatusDonut);
+          setTopSellingMedicines(a.topSellingMedicines || []);
+          setRevenueLineData(a.weeklyRevenue || [0, 0, 0, 0, 0, 0, 0]);
+          if (a.prescriptionRate) setPrescriptionRate(a.prescriptionRate);
+        }
+      })
+      .catch(() => addToast('Failed to load analytics', 'error'))
+      .finally(() => setLoading(false));
+  }, [accessToken]);
+
+  const maxBar = Math.max(...weeklySalesData, 1);
+  const maxLine = Math.max(...revenueLineData, 1);
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  if (loading) {
+    return <div className="page-enter py-12 text-center text-charcoal/60">Loading analytics…</div>;
+  }
+
   return (
     <div className="space-y-8 page-enter">
       <h2 className="font-fraunces text-xl font-semibold text-charcoal">Analytics</h2>
@@ -96,7 +125,11 @@ export default function AnalyticsPage() {
 
       <div className="rounded-xl border border-charcoal/10 bg-white p-6">
         <h3 className="font-fraunces font-semibold text-charcoal mb-2">Prescription verification rate</h3>
-        <p className="text-charcoal/70 text-sm">Based on last 30 days: Approved 72%, Rejected 18%, Pending 10%.</p>
+        <p className="text-charcoal/70 text-sm">
+          {prescriptionRate.total > 0
+            ? `Based on ${prescriptionRate.total} prescriptions: Approved ${prescriptionRate.approved}%, Rejected ${prescriptionRate.rejected}%, Pending ${prescriptionRate.pending}%.`
+            : 'No prescriptions submitted yet.'}
+        </p>
       </div>
     </div>
   );

@@ -1,18 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MEDICINE_CATEGORIES } from '../../data/constants';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/ui/Modal';
+import api from '../../services/api';
 
 export default function MedicineManagementPage() {
+  const { accessToken } = useAuth();
   const { addToast } = useToast();
   const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
-    name: '', brand: '', category: MEDICINE_CATEGORIES[0], price: '', stock: '', expiry: '', prescriptionRequired: false,
+    name: '', genericName: '', manufacturer: '', category: MEDICINE_CATEGORIES[0], price: '', stock: '', expiryDate: '', requiresPrescription: false, description: '',
   });
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState('name');
+
+  useEffect(() => {
+    api.getMedicines()
+      .then((res) => setList(res.data?.medicines ?? []))
+      .catch(() => addToast('Failed to load medicines', 'error'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = [...list]
     .filter((m) => !filter || m.category === filter)
@@ -20,39 +31,54 @@ export default function MedicineManagementPage() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', brand: '', category: MEDICINE_CATEGORIES[0], price: '', stock: '', expiry: '', prescriptionRequired: false });
+    setForm({ name: '', genericName: '', manufacturer: '', category: MEDICINE_CATEGORIES[0], price: '', stock: '', expiryDate: '', requiresPrescription: false, description: '' });
     setModalOpen(true);
   };
 
   const openEdit = (m) => {
     setEditing(m);
     setForm({
-      name: m.name, brand: m.brand, category: m.category, price: String(m.price), stock: String(m.stock), expiry: m.expiry, prescriptionRequired: m.prescriptionRequired,
+      name: m.name, genericName: m.genericName || '', manufacturer: m.manufacturer || '', category: m.category, price: String(m.price), stock: String(m.stock), expiryDate: m.expiryDate || '', requiresPrescription: m.requiresPrescription || m.prescriptionRequired || false, description: m.description || '',
     });
     setModalOpen(true);
   };
 
-  const save = () => {
-    if (editing) {
-      setList((prev) =>
-        prev.map((item) =>
-          item.id === editing.id ? { ...item, ...form, price: Number(form.price), stock: Number(form.stock) } : item
-        )
-      );
-      addToast('Medicine updated successfully');
-    } else {
-      setList((prev) => [
-        ...prev,
-        { id: 'm' + (prev.length + 1), ...form, price: Number(form.price), stock: Number(form.stock), soldCount: 0, description: '' },
-      ]);
-      addToast('Medicine added successfully');
+  const save = async () => {
+    try {
+      const body = {
+        name: form.name,
+        genericName: form.genericName,
+        manufacturer: form.manufacturer,
+        category: form.category,
+        price: Number(form.price),
+        stock: Number(form.stock),
+        expiryDate: form.expiryDate || null,
+        requiresPrescription: form.requiresPrescription,
+        description: form.description,
+      };
+      if (editing) {
+        const res = await api.updateMedicine(editing.id, body, accessToken);
+        setList((prev) => prev.map((item) => (item.id === editing.id ? res.data.medicine : item)));
+        addToast('Medicine updated successfully');
+      } else {
+        const res = await api.createMedicine(body, accessToken);
+        setList((prev) => [...prev, res.data.medicine]);
+        addToast('Medicine added successfully');
+      }
+      setModalOpen(false);
+    } catch (err) {
+      addToast(err.message || 'Failed to save medicine', 'error');
     }
-    setModalOpen(false);
   };
 
-  const remove = (id) => {
-    setList((prev) => prev.filter((m) => m.id !== id));
-    addToast('Medicine removed successfully');
+  const remove = async (id) => {
+    try {
+      await api.deleteMedicine(id, accessToken);
+      setList((prev) => prev.filter((m) => m.id !== id));
+      addToast('Medicine removed successfully');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete medicine', 'error');
+    }
   };
 
   return (
@@ -79,7 +105,7 @@ export default function MedicineManagementPage() {
           <thead>
             <tr className="bg-charcoal/5 text-left">
               <th className="px-4 py-3 font-medium text-charcoal">Name</th>
-              <th className="px-4 py-3 font-medium text-charcoal">Brand</th>
+              <th className="px-4 py-3 font-medium text-charcoal">Manufacturer</th>
               <th className="px-4 py-3 font-medium text-charcoal">Category</th>
               <th className="px-4 py-3 font-medium text-charcoal">Price</th>
               <th className="px-4 py-3 font-medium text-charcoal">Stock</th>
@@ -92,12 +118,12 @@ export default function MedicineManagementPage() {
             {filtered.map((m) => (
               <tr key={m.id} className="border-t border-charcoal/5">
                 <td className="px-4 py-3 font-medium">{m.name}</td>
-                <td className="px-4 py-3 text-charcoal/70">{m.brand}</td>
+                <td className="px-4 py-3 text-charcoal/70">{m.manufacturer}</td>
                 <td className="px-4 py-3 text-charcoal/70">{m.category}</td>
                 <td className="px-4 py-3">Rs. {m.price}</td>
                 <td className="px-4 py-3">{m.stock}</td>
-                <td className="px-4 py-3 text-charcoal/70">{m.expiry}</td>
-                <td className="px-4 py-3">{m.prescriptionRequired ? 'Yes' : 'No'}</td>
+                <td className="px-4 py-3 text-charcoal/70">{m.expiryDate || '—'}</td>
+                <td className="px-4 py-3">{(m.requiresPrescription || m.prescriptionRequired) ? 'Yes' : 'No'}</td>
                 <td className="px-4 py-3">
                   <button type="button" onClick={() => openEdit(m)} className="text-primary font-medium hover:underline mr-2">Edit</button>
                   <button type="button" onClick={() => remove(m.id)} className="text-soft-red font-medium hover:underline">Delete</button>
@@ -116,8 +142,12 @@ export default function MedicineManagementPage() {
             <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">Brand</label>
-            <input type="text" value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none" />
+            <label className="block text-sm font-medium text-charcoal mb-1">Generic Name</label>
+            <input type="text" value={form.genericName} onChange={(e) => setForm((f) => ({ ...f, genericName: e.target.value }))} className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1">Manufacturer</label>
+            <input type="text" value={form.manufacturer} onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))} className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-charcoal mb-1">Category</label>
@@ -136,11 +166,15 @@ export default function MedicineManagementPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">Expiry</label>
-            <input type="date" value={form.expiry} onChange={(e) => setForm((f) => ({ ...f, expiry: e.target.value }))} className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none" />
+            <label className="block text-sm font-medium text-charcoal mb-1">Expiry Date</label>
+            <input type="date" value={form.expiryDate} onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))} className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1">Description</label>
+            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none" />
           </div>
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={form.prescriptionRequired} onChange={(e) => setForm((f) => ({ ...f, prescriptionRequired: e.target.checked }))} className="rounded text-primary" />
+            <input type="checkbox" checked={form.requiresPrescription} onChange={(e) => setForm((f) => ({ ...f, requiresPrescription: e.target.checked }))} className="rounded text-primary" />
             <span className="text-sm text-charcoal">Prescription required</span>
           </label>
           <div className="flex justify-end gap-2 pt-2">

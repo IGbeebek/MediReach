@@ -1,17 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MEDICINE_CATEGORIES } from '../../data/constants';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
+import api from '../../services/api';
 
 export default function InventoryManagementPage() {
+  const { accessToken } = useAuth();
   const { addToast } = useToast();
   const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState('name');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', brand: '', category: '', price: '', stock: '', expiry: '', prescriptionRequired: false });
+  const [form, setForm] = useState({ name: '', genericName: '', manufacturer: '', category: '', price: '', stock: '', expiryDate: '', requiresPrescription: false, description: '' });
+
+  useEffect(() => {
+    api.getMedicines()
+      .then((res) => setList(res.data?.medicines ?? []))
+      .catch(() => addToast('Failed to load inventory', 'error'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = [...list]
     .filter((m) => !filter || m.category === filter)
@@ -19,7 +30,7 @@ export default function InventoryManagementPage() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', brand: '', category: MEDICINE_CATEGORIES[0], price: '', stock: '', expiry: '', prescriptionRequired: false });
+    setForm({ name: '', genericName: '', manufacturer: '', category: MEDICINE_CATEGORIES[0], price: '', stock: '', expiryDate: '', requiresPrescription: false, description: '' });
     setModalOpen(true);
   };
 
@@ -27,46 +38,44 @@ export default function InventoryManagementPage() {
     setEditing(m);
     setForm({
       name: m.name,
-      brand: m.brand,
+      genericName: m.genericName || '',
+      manufacturer: m.manufacturer || '',
       category: m.category,
       price: String(m.price),
       stock: String(m.stock),
-      expiry: m.expiry,
-      prescriptionRequired: m.prescriptionRequired,
+      expiryDate: m.expiryDate || '',
+      requiresPrescription: m.requiresPrescription || m.prescriptionRequired || false,
+      description: m.description || '',
     });
     setModalOpen(true);
   };
 
-  const save = () => {
-    if (editing) {
-      setList((prev) =>
-        prev.map((m) =>
-          m.id === editing.id
-            ? {
-                ...m,
-                ...form,
-                price: Number(form.price),
-                stock: Number(form.stock),
-              }
-            : m
-        )
-      );
-      addToast('Medicine updated successfully');
-    } else {
-      setList((prev) => [
-        ...prev,
-        {
-          id: 'm' + (prev.length + 1),
-          ...form,
-          price: Number(form.price),
-          stock: Number(form.stock),
-          soldCount: 0,
-          description: '',
-        },
-      ]);
-      addToast('Medicine added to inventory');
+  const save = async () => {
+    try {
+      const body = {
+        name: form.name,
+        genericName: form.genericName,
+        manufacturer: form.manufacturer,
+        category: form.category,
+        price: Number(form.price),
+        stock: Number(form.stock),
+        expiryDate: form.expiryDate || null,
+        requiresPrescription: form.requiresPrescription,
+        description: form.description,
+      };
+      if (editing) {
+        const res = await api.updateMedicine(editing.id, body, accessToken);
+        setList((prev) => prev.map((m) => (m.id === editing.id ? res.data.medicine : m)));
+        addToast('Medicine updated successfully');
+      } else {
+        const res = await api.createMedicine(body, accessToken);
+        setList((prev) => [...prev, res.data.medicine]);
+        addToast('Medicine added to inventory');
+      }
+      setModalOpen(false);
+    } catch (err) {
+      addToast(err.message || 'Failed to save medicine', 'error');
     }
-    setModalOpen(false);
   };
 
   return (
@@ -123,7 +132,7 @@ export default function InventoryManagementPage() {
                   <td className="px-4 py-3">
                     {m.stock < 20 ? <Badge variant="amber">{m.stock} low</Badge> : m.stock}
                   </td>
-                  <td className="px-4 py-3 text-charcoal/70">{m.expiry}</td>
+                  <td className="px-4 py-3 text-charcoal/70">{m.expiryDate || '—'}</td>
                   <td className="px-4 py-3">Rs. {m.price}</td>
                   <td className="px-4 py-3">
                     <button
@@ -154,11 +163,20 @@ export default function InventoryManagementPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">Brand</label>
+            <label className="block text-sm font-medium text-charcoal mb-1">Generic Name</label>
             <input
               type="text"
-              value={form.brand}
-              onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
+              value={form.genericName}
+              onChange={(e) => setForm((f) => ({ ...f, genericName: e.target.value }))}
+              className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1">Manufacturer</label>
+            <input
+              type="text"
+              value={form.manufacturer}
+              onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))}
               className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none"
             />
           </div>
@@ -195,19 +213,28 @@ export default function InventoryManagementPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-charcoal mb-1">Expiry</label>
+            <label className="block text-sm font-medium text-charcoal mb-1">Expiry Date</label>
             <input
               type="date"
-              value={form.expiry}
-              onChange={(e) => setForm((f) => ({ ...f, expiry: e.target.value }))}
+              value={form.expiryDate}
+              onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))}
+              className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1">Description</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              rows={3}
               className="w-full rounded-lg border border-charcoal/20 px-4 py-2 focus:border-primary outline-none"
             />
           </div>
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={form.prescriptionRequired}
-              onChange={(e) => setForm((f) => ({ ...f, prescriptionRequired: e.target.checked }))}
+              checked={form.requiresPrescription}
+              onChange={(e) => setForm((f) => ({ ...f, requiresPrescription: e.target.checked }))}
               className="rounded text-primary"
             />
             <span className="text-sm text-charcoal">Prescription required</span>
