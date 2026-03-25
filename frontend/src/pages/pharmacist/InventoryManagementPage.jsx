@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/ui/Modal';
 import Badge from '../../components/ui/Badge';
+import { getMedicineImageUrl } from '../../data/medicineImages';
 import api from '../../services/api';
 
 const formatDateOnly = (value) => {
@@ -132,7 +133,23 @@ export default function InventoryManagementPage() {
             <tbody>
               {filtered.map((m) => (
                 <tr key={m.id} className={`border-t border-charcoal/5 ${m.stock < 20 ? 'bg-soft-red/5' : ''}`}>
-                  <td className="px-4 py-3 font-medium">{m.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-charcoal/5">
+                        <img
+                          src={getMedicineImageUrl(m, m.imageUrl)}
+                          alt={m.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="hidden h-full w-full items-center justify-center text-lg">💊</div>
+                      </div>
+                      <span>{m.name}</span>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-charcoal/70">{m.category}</td>
                   <td className="px-4 py-3">
                     {m.stock < 20 ? <Badge variant="amber">{m.stock} low</Badge> : m.stock}

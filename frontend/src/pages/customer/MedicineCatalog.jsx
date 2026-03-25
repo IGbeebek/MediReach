@@ -8,6 +8,7 @@ import { useToast } from '../../context/ToastContext';
 import { useNotifications } from '../../context/NotificationContext';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
+import { getMedicineImageUrl } from '../../data/medicineImages';
 import api from '../../services/api';
 
 export default function MedicineCatalog() {
@@ -147,6 +148,9 @@ export default function MedicineCatalog() {
         <>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map((m) => (
+              (() => {
+                const imageSrc = getMedicineImageUrl(m, m.imageUrl);
+                return (
               <Link
                 key={m.id}
                 to={`/medicines/${m.id}`}
@@ -169,15 +173,15 @@ export default function MedicineCatalog() {
                 </button>
                 
                 <div className="relative mb-4 h-48 w-full overflow-hidden rounded-xl bg-gradient-to-br from-charcoal/5 to-transparent flex items-center justify-center group-hover:shadow-inner transition-all duration-300">
-                  {m.imageUrl ? (
+                  {imageSrc ? (
                     <img
-                      src={m.imageUrl}
+                      src={imageSrc}
                       alt={m.name}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                       onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }}
                     />
                   ) : null}
-                  <div className={`h-full w-full items-center justify-center text-5xl opacity-50 ${m.imageUrl ? 'hidden' : 'flex'}`}>💊</div>
+                  <div className={`h-full w-full items-center justify-center text-5xl opacity-50 ${imageSrc ? 'hidden' : 'flex'}`}>💊</div>
                   
                   {/* Quick Add overlay */}
                   <div className="absolute inset-0 bg-charcoal/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -212,6 +216,8 @@ export default function MedicineCatalog() {
                   </div>
                 </div>
               </Link>
+                );
+              })()
             ))}
           </div>
           {filtered.length === 0 && medicines.length > 0 && (

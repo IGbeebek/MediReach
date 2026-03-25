@@ -9,6 +9,7 @@ import Breadcrumb from '../../components/ui/Breadcrumb';
 import ProgressBar from '../../components/ui/ProgressBar';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
+import { getMedicineImageUrl } from '../../data/medicineImages';
 import api from '../../services/api';
 
 export default function MedicineDetailPage() {
@@ -59,6 +60,8 @@ export default function MedicineDetailPage() {
     );
   }
 
+  const medicineImageSrc = getMedicineImageUrl(medicine, medicine.imageUrl);
+
   const handleAddToCart = async () => {
     if (!user) {
       setShowAuthModal(true);
@@ -105,15 +108,15 @@ export default function MedicineDetailPage() {
         <div className="lg:col-span-2 rounded-xl border border-charcoal/10 bg-white p-6">
           <div className="flex gap-6">
             <div className="h-48 w-48 shrink-0 overflow-hidden rounded-xl bg-charcoal/5">
-              {medicine.imageUrl ? (
+              {medicineImageSrc ? (
                 <img
-                  src={medicine.imageUrl}
+                  src={medicineImageSrc}
                   alt={medicine.name}
                   className="h-full w-full object-cover"
                   onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }}
                 />
               ) : null}
-              <div className={`h-full w-full items-center justify-center text-5xl ${medicine.imageUrl ? 'hidden' : 'flex'}`}>💊</div>
+              <div className={`h-full w-full items-center justify-center text-5xl ${medicineImageSrc ? 'hidden' : 'flex'}`}>💊</div>
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="font-fraunces text-2xl font-semibold text-charcoal">{medicine.name}</h1>
@@ -173,16 +176,19 @@ export default function MedicineDetailPage() {
           <h3 className="font-fraunces font-semibold text-charcoal">Alternatives</h3>
           <ul className="mt-3 space-y-3">
             {alternatives.map((m) => (
+              (() => {
+                const imageSrc = getMedicineImageUrl(m, m.imageUrl);
+                return (
               <li key={m.id}>
                 <Link
                   to={`/medicines/${m.id}`}
                   className="flex items-center gap-3 rounded-lg p-2 hover:bg-charcoal/5 transition-colors"
                 >
                   <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-charcoal/5">
-                    {m.imageUrl ? (
-                      <img src={m.imageUrl} alt={m.name} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }} />
+                    {imageSrc ? (
+                      <img src={imageSrc} alt={m.name} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }} />
                     ) : null}
-                    <div className={`h-full w-full items-center justify-center text-lg ${m.imageUrl ? 'hidden' : 'flex'}`}>💊</div>
+                    <div className={`h-full w-full items-center justify-center text-lg ${imageSrc ? 'hidden' : 'flex'}`}>💊</div>
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium text-charcoal truncate">{m.name}</p>
@@ -190,6 +196,8 @@ export default function MedicineDetailPage() {
                   </div>
                 </Link>
               </li>
+                );
+              })()
             ))}
           </ul>
           {alternatives.length === 0 && <p className="text-sm text-charcoal/50">No alternatives in same category.</p>}

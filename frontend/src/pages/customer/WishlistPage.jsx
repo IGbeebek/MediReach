@@ -3,6 +3,7 @@ import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
 import { useToast } from "../../context/ToastContext";
 import Badge from "../../components/ui/Badge";
+import { getMedicineImageUrl } from "../../data/medicineImages";
 
 export default function WishlistPage() {
   const { items, loading, removeFromWishlist, clearWishlist } = useWishlist();
@@ -96,6 +97,9 @@ export default function WishlistPage() {
       {items.length > 0 && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {items.map((item) => (
+            (() => {
+              const imageSrc = getMedicineImageUrl(item.name, item.imageUrl);
+              return (
             <div
               key={item.id}
               className="group rounded-xl border border-charcoal/10 bg-white p-5 shadow-card hover-lift transition-all duration-300 flex flex-col relative"
@@ -123,9 +127,9 @@ export default function WishlistPage() {
               >
                 {/* Image */}
                 <div className="mb-3 h-40 w-full overflow-hidden rounded-lg bg-charcoal/5">
-                  {item.imageUrl ? (
+                  {imageSrc ? (
                     <img
-                      src={item.imageUrl}
+                      src={imageSrc}
                       alt={item.name}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
@@ -136,7 +140,7 @@ export default function WishlistPage() {
                     />
                   ) : null}
                   <div
-                    className={`h-full w-full items-center justify-center text-4xl ${item.imageUrl ? "hidden" : "flex"}`}
+                    className={`h-full w-full items-center justify-center text-4xl ${imageSrc ? "hidden" : "flex"}`}
                   >
                     💊
                   </div>
@@ -178,6 +182,8 @@ export default function WishlistPage() {
                 </div>
               </div>
             </div>
+              );
+            })()
           ))}
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import api from "../../services/api";
+import botImage from "../../assets/images/bot.png";
 
 /* ─── Language config ─── */
 const LANGS = {
@@ -333,7 +334,7 @@ export default function MediBot() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-charcoal/10 px-4 py-3 bg-primary/10 rounded-t-2xl">
           <div className="flex items-center gap-2">
-            <span className="text-lg">🤖</span>
+            <img src={botImage} alt="MediBot" className="h-6 w-6 rounded-full object-cover" />
             <span className="font-fraunces font-semibold text-charcoal">
               MediBot
             </span>
@@ -378,7 +379,7 @@ export default function MediBot() {
               className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {m.role === "bot" && (
-                <span className="mr-1.5 mt-1 text-sm shrink-0">🤖</span>
+                <img src={botImage} alt="MediBot" className="mr-1.5 mt-1 h-5 w-5 shrink-0 rounded-full object-cover" />
               )}
               <div
                 className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
@@ -401,7 +402,7 @@ export default function MediBot() {
           ))}
           {loading && (
             <div className="flex justify-start">
-              <span className="mr-1.5 mt-1 text-sm">🤖</span>
+              <img src={botImage} alt="MediBot" className="mr-1.5 mt-1 h-5 w-5 rounded-full object-cover" />
               <div className="bg-charcoal/[0.06] rounded-xl px-4 py-3">
                 <div className="flex gap-1">
                   <span
@@ -558,7 +559,7 @@ export default function MediBot() {
         className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-card-hover hover:bg-primary-dark transition-all hover:scale-105"
         aria-label="Open MediBot"
       >
-        {open ? "✕" : "🤖"}
+        {open ? "✕" : <img src={botImage} alt="MediBot" className="h-8 w-8 rounded-full object-cover" />}
       </button>
     </>
   );

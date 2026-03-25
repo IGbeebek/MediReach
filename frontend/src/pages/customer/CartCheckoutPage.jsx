@@ -4,6 +4,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { PAYMENT_METHODS } from '../../data/constants';
+import { getMedicineImageUrl } from '../../data/medicineImages';
 import QtyControls from '../../components/ui/QtyControls';
 import api from '../../services/api';
 
@@ -228,12 +229,15 @@ export default function CartCheckoutPage() {
           <div className="rounded-xl border border-charcoal/10 bg-white overflow-hidden">
             <ul className="divide-y divide-charcoal/10">
               {items.map((item) => (
+                (() => {
+                  const imageSrc = getMedicineImageUrl(item.medicineName, item.imageUrl);
+                  return (
                 <li key={item.medicineId} className="flex items-center gap-4 p-4">
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-charcoal/5">
-                    {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.medicineName} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }} />
+                    {imageSrc ? (
+                      <img src={imageSrc} alt={item.medicineName} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }} />
                     ) : null}
-                    <div className={`h-full w-full items-center justify-center text-2xl ${item.imageUrl ? 'hidden' : 'flex'}`}>💊</div>
+                    <div className={`h-full w-full items-center justify-center text-2xl ${imageSrc ? 'hidden' : 'flex'}`}>💊</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-charcoal">{item.medicineName}</p>
@@ -253,6 +257,8 @@ export default function CartCheckoutPage() {
                     Remove
                   </button>
                 </li>
+                  );
+                })()
               ))}
             </ul>
             <div className="border-t border-charcoal/10 p-4 space-y-1 text-right">
