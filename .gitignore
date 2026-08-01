@@ -24,3 +24,6 @@ Thumbs.db
 
 # Uploaded files
 backend/uploads/
+
+frontend/build/** linguist-generated=true
+static/** linguist-generated=true
